@@ -12,7 +12,8 @@
   "dependencies": {
     "next": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "viem": "^2.56.3"
   },
   "devDependencies": {
     "@types/node": "latest",

@@ -2,9 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { normalizeTokenAddress } from "@/lib/address";
 
 export default function HomePage() {
   const [address, setAddress] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -13,10 +15,17 @@ export default function HomePage() {
     const trimmedAddress = address.trim();
 
     if (trimmedAddress.length === 0) {
+      setError("Enter a token address.");
       return;
     }
 
-    router.push(`/t/${encodeURIComponent(trimmedAddress)}`);
+    try {
+      const normalizedAddress = normalizeTokenAddress(trimmedAddress);
+      setError(null);
+      router.push(`/t/${encodeURIComponent(normalizedAddress)}`);
+    } catch {
+      setError("Enter a valid 0x EVM address.");
+    }
   }
 
   return (
@@ -56,7 +65,7 @@ export default function HomePage() {
           Check
         </button>
       </form>
+      {error ? <p className="form-error">{error}</p> : null}
     </section>
   );
 }
-

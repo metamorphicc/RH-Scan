@@ -145,6 +145,13 @@ h1 {
   background: #196844;
 }
 
+.form-error {
+  margin: 10px 0 0;
+  color: #9a3324;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
 .placeholder {
   margin-top: 34px;
   border: 1px solid var(--warn-line);
