@@ -2,13 +2,14 @@
 
 rhcheck is a TypeScript Next.js App Router project for a read-only Robinhood Chain token check page.
 
-This repository currently includes Stage 0 and Stage 1. It provides the app skeleton, an address input on the home page, a placeholder token page at `/t/[address]`, environment variable examples, and a temporary rights debug API.
+This repository currently includes Stages 0-2. It provides the app skeleton, an address input on the home page, a placeholder token page at `/t/[address]`, environment variable examples, and temporary debug APIs for rights and pool reads.
 
 ## What It Is
 
 - A read-only token check interface for Robinhood Chain.
 - A placeholder that routes an entered address to `/t/[address]`.
 - A temporary `GET /api/rights?token=0x...` endpoint that reads known view methods with `eth_call`.
+- A temporary `GET /api/pool?token=0x...` endpoint that can read V2 pools once verified Robinhood Chain venues are added.
 - A foundation for later deterministic checks that may eventually produce `don't`, `thin`, or `ok to size small`.
 
 ## What It Is Not
@@ -18,7 +19,8 @@ This repository currently includes Stage 0 and Stage 1. It provides the app skel
 - No swap flow.
 - No buy button.
 - No LLM scoring.
-- No pool checks, deployer history, persistence, verdict evaluation, OG cards, alerts, or payments.
+- No deployer history, persistence, verdict evaluation, OG cards, alerts, or payments.
+- No invented DEX/factory addresses; `lib/venues.ts` must be filled only with verified Robinhood Chain venues.
 - No guarantee language about token outcomes.
 
 ## Environment
@@ -50,8 +52,16 @@ pnpm dev
 
 Open `http://localhost:3000`, paste an address, and submit. The app will route to `/t/[address]` and show a `not wired` placeholder with the raw address.
 
-To test the Stage 1 debug endpoint after setting `RH_RPC_URL` and `RH_CHAIN_ID`:
+To test the Stage 1 rights debug endpoint after setting `RH_RPC_URL` and `RH_CHAIN_ID`:
 
 ```bash
 curl "http://localhost:3000/api/rights?token=0x..."
 ```
+
+To test the Stage 2 pool debug endpoint:
+
+```bash
+curl "http://localhost:3000/api/pool?token=0x..."
+```
+
+Until verified venues are added to `lib/venues.ts`, pool status is expected to be `unknown`.
