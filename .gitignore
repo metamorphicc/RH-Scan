@@ -2,6 +2,7 @@
 node_modules
 out
 dist
+.test-build
 .env
 .env*.local
 *.log

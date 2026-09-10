@@ -1,0 +1,118 @@
+[
+  {
+    "name": "mint authority present is critical",
+    "expectedVerdict": "don't",
+    "snapshot": {
+      "tokenAddress": "0x0000000000000000000000000000000000000001",
+      "authorities": {
+        "mint": "present",
+        "freeze": "absent",
+        "owner": "absent",
+        "feeWallet": "absent"
+      },
+      "pool": {
+        "status": "present",
+        "deployerShare": 1,
+        "reserveQuote": "5000",
+        "ageMinutes": 240
+      },
+      "deployer": {
+        "tokensSeen": 4,
+        "deadCount": 0
+      }
+    }
+  },
+  {
+    "name": "missing pool is critical",
+    "expectedVerdict": "don't",
+    "snapshot": {
+      "tokenAddress": "0x0000000000000000000000000000000000000002",
+      "authorities": {
+        "mint": "absent",
+        "freeze": "absent",
+        "owner": "absent",
+        "feeWallet": "absent"
+      },
+      "pool": {
+        "status": "absent",
+        "deployerShare": null,
+        "reserveQuote": null,
+        "ageMinutes": null
+      },
+      "deployer": {
+        "tokensSeen": 5,
+        "deadCount": 0
+      }
+    }
+  },
+  {
+    "name": "unknown authority stays thin",
+    "expectedVerdict": "thin",
+    "snapshot": {
+      "tokenAddress": "0x0000000000000000000000000000000000000003",
+      "authorities": {
+        "mint": "unknown",
+        "freeze": "absent",
+        "owner": "absent",
+        "feeWallet": "absent"
+      },
+      "pool": {
+        "status": "present",
+        "deployerShare": 2,
+        "reserveQuote": "5000",
+        "ageMinutes": 240
+      },
+      "deployer": {
+        "tokensSeen": 3,
+        "deadCount": 0
+      }
+    }
+  },
+  {
+    "name": "thin pool stays thin",
+    "expectedVerdict": "thin",
+    "snapshot": {
+      "tokenAddress": "0x0000000000000000000000000000000000000004",
+      "authorities": {
+        "mint": "absent",
+        "freeze": "absent",
+        "owner": "absent",
+        "feeWallet": "absent"
+      },
+      "pool": {
+        "status": "present",
+        "deployerShare": 3,
+        "reserveQuote": "10",
+        "ageMinutes": 240
+      },
+      "deployer": {
+        "tokensSeen": 2,
+        "deadCount": 0
+      }
+    }
+  },
+  {
+    "name": "clean known snapshot can be ok",
+    "expectedVerdict": "ok to size small",
+    "snapshot": {
+      "tokenAddress": "0x0000000000000000000000000000000000000005",
+      "authorities": {
+        "mint": "absent",
+        "freeze": "absent",
+        "owner": "absent",
+        "feeWallet": "absent"
+      },
+      "pool": {
+        "status": "present",
+        "deployerShare": 4,
+        "reserveQuote": "5000",
+        "ageMinutes": 240
+      },
+      "deployer": {
+        "tokensSeen": 6,
+        "deadCount": 0
+      }
+    }
+  }
+]
+

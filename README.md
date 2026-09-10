@@ -2,7 +2,7 @@
 
 rhcheck is a TypeScript Next.js App Router project for a read-only Robinhood Chain token check page.
 
-This repository currently includes Stages 0-2. It provides the app skeleton, an address input on the home page, a placeholder token page at `/t/[address]`, environment variable examples, and temporary debug APIs for rights and pool reads.
+This repository currently includes Stages 0-3. It provides the app skeleton, an address input on the home page, a placeholder token page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, and deterministic offline verdict rules.
 
 ## What It Is
 
@@ -10,7 +10,7 @@ This repository currently includes Stages 0-2. It provides the app skeleton, an 
 - A placeholder that routes an entered address to `/t/[address]`.
 - A temporary `GET /api/rights?token=0x...` endpoint that reads known view methods with `eth_call`.
 - A temporary `GET /api/pool?token=0x...` endpoint that can read V2 pools once verified Robinhood Chain venues are added.
-- A foundation for later deterministic checks that may eventually produce `don't`, `thin`, or `ok to size small`.
+- Offline deterministic rules that can produce `don't`, `thin`, or `ok to size small`.
 
 ## What It Is Not
 
@@ -21,6 +21,7 @@ This repository currently includes Stages 0-2. It provides the app skeleton, an 
 - No LLM scoring.
 - No deployer history, persistence, verdict evaluation, OG cards, alerts, or payments.
 - No invented DEX/factory addresses; `lib/venues.ts` must be filled only with verified Robinhood Chain venues.
+- No wired end-to-end `/api/check` pipeline yet.
 - No guarantee language about token outcomes.
 
 ## Environment
@@ -65,3 +66,9 @@ curl "http://localhost:3000/api/pool?token=0x..."
 ```
 
 Until verified venues are added to `lib/venues.ts`, pool status is expected to be `unknown`.
+
+Run offline rule fixtures:
+
+```bash
+pnpm test
+```
