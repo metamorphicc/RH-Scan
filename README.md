@@ -2,7 +2,7 @@
 
 rhcheck is a TypeScript Next.js App Router project for a read-only Robinhood Chain token check page.
 
-This repository currently includes Stages 0-3. It provides the app skeleton, an address input on the home page, a placeholder token page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, and deterministic offline verdict rules.
+This repository currently includes Stages 0-4. It provides the app skeleton, an address input on the home page, a placeholder token page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, deterministic offline verdict rules, and an end-to-end check API.
 
 ## What It Is
 
@@ -10,6 +10,7 @@ This repository currently includes Stages 0-3. It provides the app skeleton, an 
 - A placeholder that routes an entered address to `/t/[address]`.
 - A temporary `GET /api/rights?token=0x...` endpoint that reads known view methods with `eth_call`.
 - A temporary `GET /api/pool?token=0x...` endpoint that can read V2 pools once verified Robinhood Chain venues are added.
+- A `GET /api/check?token=0x...` endpoint that combines rights, pool facts, deployer stats, rules, caching, and snapshot storage.
 - Offline deterministic rules that can produce `don't`, `thin`, or `ok to size small`.
 
 ## What It Is Not
@@ -19,22 +20,23 @@ This repository currently includes Stages 0-3. It provides the app skeleton, an 
 - No swap flow.
 - No buy button.
 - No LLM scoring.
-- No deployer history, persistence, verdict evaluation, OG cards, alerts, or payments.
+- No explorer-backed deployer discovery, OG cards, alerts, or payments.
 - No invented DEX/factory addresses; `lib/venues.ts` must be filled only with verified Robinhood Chain venues.
-- No wired end-to-end `/api/check` pipeline yet.
+- No UI result page wiring yet; `/t/[address]` still shows the placeholder.
 - No guarantee language about token outcomes.
 
 ## Environment
 
-Copy `.env.example` to `.env.local` for Stage 1 RPC reads:
+Copy `.env.example` to `.env.local` for RPC reads:
 
 ```bash
 RH_RPC_URL=
 RH_CHAIN_ID=
 RH_EXPLORER_API_URL=
+RHCHECK_DB_PATH=
 ```
 
-`RH_EXPLORER_API_URL` is reserved for later stages.
+`RH_EXPLORER_API_URL` is reserved for later stages. `RHCHECK_DB_PATH` is optional; by default snapshots are stored in `data/rhcheck.sqlite`.
 
 ## Run Locally
 
@@ -66,6 +68,20 @@ curl "http://localhost:3000/api/pool?token=0x..."
 ```
 
 Until verified venues are added to `lib/venues.ts`, pool status is expected to be `unknown`.
+
+To test the Stage 4 check endpoint:
+
+```bash
+curl "http://localhost:3000/api/check?token=0x..."
+```
+
+You may pass a deployer address when known:
+
+```bash
+curl "http://localhost:3000/api/check?token=0x...&deployer=0x..."
+```
+
+Responses are cached in memory for 45 seconds per token/deployer pair and written to SQLite snapshots.
 
 Run offline rule fixtures:
 

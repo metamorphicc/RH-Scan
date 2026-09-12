@@ -3,6 +3,9 @@ node_modules
 out
 dist
 .test-build
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
 .env
 .env*.local
 *.log
