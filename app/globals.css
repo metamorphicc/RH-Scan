@@ -171,6 +171,144 @@ h1 {
   line-height: 1.55;
 }
 
+.result-page {
+  max-width: 820px;
+}
+
+.result-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.secondary-button {
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 720;
+  padding: 0 14px;
+}
+
+.secondary-button:hover {
+  border-color: var(--accent);
+}
+
+.token-summary,
+.snapshot-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.token-summary > div,
+.snapshot-meta > div,
+.fact-row,
+.status-panel,
+.verdict-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.token-summary > div,
+.snapshot-meta > div {
+  min-width: 0;
+  padding: 14px;
+}
+
+.summary-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.summary-value {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-weight: 680;
+}
+
+.mono {
+  overflow-wrap: anywhere;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.status-panel,
+.verdict-panel {
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.status-panel h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.status-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.status-panel p + p {
+  margin-top: 10px;
+}
+
+.verdict-panel {
+  display: grid;
+  gap: 6px;
+}
+
+.verdict-panel strong {
+  font-size: clamp(2rem, 8vw, 4.2rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.verdict-dont {
+  border-color: #d8a097;
+  background: #fff0ed;
+}
+
+.verdict-thin {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+}
+
+.verdict-ok {
+  border-color: #9fcdb8;
+  background: #edf8f2;
+}
+
+.facts-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fact-row {
+  padding: 14px 16px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.disclaimer {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .raw-address {
   margin-top: 22px;
   overflow-wrap: anywhere;
@@ -201,6 +339,16 @@ h1 {
 
   .address-form {
     grid-template-columns: 1fr;
+  }
+
+  .result-head,
+  .token-summary,
+  .snapshot-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .result-head .secondary-button {
+    width: 100%;
   }
 
   .submit-button {

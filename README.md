@@ -2,12 +2,12 @@
 
 rhcheck is a TypeScript Next.js App Router project for a read-only Robinhood Chain token check page.
 
-This repository currently includes Stages 0-4. It provides the app skeleton, an address input on the home page, a placeholder token page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, deterministic offline verdict rules, and an end-to-end check API.
+This repository currently includes Stages 0-5. It provides the app skeleton, an address input on the home page, a token result page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, deterministic offline verdict rules, and an end-to-end check API.
 
 ## What It Is
 
 - A read-only token check interface for Robinhood Chain.
-- A placeholder that routes an entered address to `/t/[address]`.
+- A result page that routes an entered address to `/t/[address]` and displays the latest check result.
 - A temporary `GET /api/rights?token=0x...` endpoint that reads known view methods with `eth_call`.
 - A temporary `GET /api/pool?token=0x...` endpoint that can read V2 pools once verified Robinhood Chain venues are added.
 - A `GET /api/check?token=0x...` endpoint that combines rights, pool facts, deployer stats, rules, caching, and snapshot storage.
@@ -22,7 +22,7 @@ This repository currently includes Stages 0-4. It provides the app skeleton, an 
 - No LLM scoring.
 - No explorer-backed deployer discovery, OG cards, alerts, or payments.
 - No invented DEX/factory addresses; `lib/venues.ts` must be filled only with verified Robinhood Chain venues.
-- No UI result page wiring yet; `/t/[address]` still shows the placeholder.
+- No OG image, rate limit, history UI, alerts, or payments.
 - No guarantee language about token outcomes.
 
 ## Environment
@@ -53,7 +53,7 @@ Start the development server:
 pnpm dev
 ```
 
-Open `http://localhost:3000`, paste an address, and submit. The app will route to `/t/[address]` and show a `not wired` placeholder with the raw address.
+Open `http://localhost:3000`, paste an address, and submit. The app will route to `/t/[address]`, call `/api/check`, and display the verdict, three facts, block, snapshot time, and copy link control.
 
 To test the Stage 1 rights debug endpoint after setting `RH_RPC_URL` and `RH_CHAIN_ID`:
 
