@@ -18,6 +18,10 @@ export type DeployerRecord = {
   updatedAt: string;
 };
 
+export type SnapshotHistoryRecord = SnapshotRecord & {
+  rawJson: unknown;
+};
+
 const DB_PATH = process.env.RHCHECK_DB_PATH ?? join(process.cwd(), "data", "rhcheck.sqlite");
 
 let database: DatabaseSync | null = null;
@@ -51,6 +55,39 @@ export async function getDeployerStats(
     .get(address) as DeployerRecord | undefined;
 
   return record ?? null;
+}
+
+export async function getSnapshotHistory(
+  token: string,
+  limit = 20,
+): Promise<SnapshotHistoryRecord[]> {
+  const db = getDatabase();
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const rows = db
+    .prepare(
+      `select token, block, ts as timestamp, raw_json as rawJson, verdict, flags
+       from snapshots
+       where lower(token) = lower(?)
+       order by ts desc
+       limit ?`,
+    )
+    .all(token, safeLimit) as Array<{
+    token: string;
+    block: number;
+    timestamp: string;
+    rawJson: string;
+    verdict: string;
+    flags: string;
+  }>;
+
+  return rows.map((row) => ({
+    token: row.token,
+    block: row.block,
+    timestamp: row.timestamp,
+    rawJson: parseJson(row.rawJson),
+    verdict: row.verdict,
+    flags: parseStringArray(row.flags),
+  }));
 }
 
 export async function upsertDeployerStats(params: {
@@ -130,4 +167,22 @@ function getDatabase(): DatabaseSync {
   `);
 
   return database;
+}
+
+function parseJson(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function parseStringArray(value: string): string[] {
+  const parsed = parseJson(value);
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed.filter((item): item is string => typeof item === "string");
 }
