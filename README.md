@@ -2,7 +2,7 @@
 
 rhcheck is a TypeScript Next.js App Router project for a read-only Robinhood Chain token check page.
 
-This repository currently includes Stages 0-6. It provides the app skeleton, an address input on the home page, a token result page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, deterministic offline verdict rules, an end-to-end check API, OG images, and a rough in-memory rate limit.
+This repository currently includes Stages 0-7. It provides the app skeleton, an address input on the home page, a token result page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, deterministic offline verdict rules, an end-to-end check API, OG images, a rough in-memory rate limit, and a live-address QA list.
 
 ## What It Is
 
@@ -13,6 +13,7 @@ This repository currently includes Stages 0-6. It provides the app skeleton, an 
 - A `GET /api/check?token=0x...` endpoint that combines rights, pool facts, deployer stats, rules, caching, and snapshot storage.
 - A `GET /api/og?token=0x...` image endpoint for link previews.
 - A rough per-IP in-memory rate limit on `/api/check`.
+- A Stage 7 QA list at `qa/addresses.md` with 20 Robinhood Chain token addresses and 5 explorer spot checks.
 - Offline deterministic rules that can produce `don't`, `thin`, or `ok to size small`.
 
 ## What It Is Not
@@ -97,4 +98,10 @@ Run offline rule fixtures:
 
 ```bash
 pnpm test
+```
+
+Run the Stage 7 live-address QA list while the dev server is running:
+
+```powershell
+.\qa\run-checks.ps1
 ```
