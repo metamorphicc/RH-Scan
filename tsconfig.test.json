@@ -8,5 +8,12 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["lib/explorer.ts", "lib/rules.ts", "tests/**/*.ts", "tests/**/*.json"]
+  "include": [
+    "lib/db.ts",
+    "lib/explorer.ts",
+    "lib/history.ts",
+    "lib/rules.ts",
+    "tests/**/*.ts",
+    "tests/**/*.json"
+  ]
 }

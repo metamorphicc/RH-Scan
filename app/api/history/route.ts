@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { AddressValidationError, normalizeTokenAddress } from "@/lib/address";
 import { getSnapshotHistory } from "@/lib/db";
+import { addSnapshotChanges } from "@/lib/history";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,11 @@ export async function GET(request: Request) {
 
   try {
     const normalizedToken = normalizeTokenAddress(token);
-    const items = await getSnapshotHistory(
-      normalizedToken,
-      Number.isInteger(limit) ? limit : 20,
+    const items = addSnapshotChanges(
+      await getSnapshotHistory(
+        normalizedToken,
+        Number.isInteger(limit) ? limit : 20,
+      ),
     );
 
     return NextResponse.json({
@@ -48,4 +51,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

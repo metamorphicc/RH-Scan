@@ -652,6 +652,20 @@ h3 {
   line-height: 1.5;
 }
 
+.history-row > div:first-child,
+.history-changes {
+  display: grid;
+  gap: 4px;
+}
+
+.history-changes {
+  min-width: 0;
+}
+
+.history-changes small {
+  overflow-wrap: anywhere;
+}
+
 .history-list {
   display: grid;
   gap: 8px;

@@ -38,6 +38,11 @@ type HistoryItem = {
   timestamp: string;
   verdict: Verdict;
   flags: string[];
+  changes: Array<{
+    field: string;
+    from: string | null;
+    to: string;
+  }>;
 };
 
 type LoadState =
@@ -300,9 +305,23 @@ function ReadyState({
           {history.length > 0 ? (
             history.map((item) => (
               <div className="history-row" key={`${item.block}-${item.timestamp}`}>
-                <span>{formatUtc(item.timestamp)}</span>
+                <div>
+                  <span>{formatUtc(item.timestamp)}</span>
+                  <small>block {item.block}</small>
+                </div>
                 <b>{item.verdict}</b>
-                <small>block {item.block}</small>
+                <div className="history-changes">
+                  {item.changes.length > 0 ? (
+                    item.changes.slice(0, 3).map((change) => (
+                      <small key={`${change.field}-${change.to}`}>
+                        {change.field}: {change.from ? `${change.from} -> ` : ""}
+                        {change.to}
+                      </small>
+                    ))
+                  ) : (
+                    <small>No observed change</small>
+                  )}
+                </div>
               </div>
             ))
           ) : (
