@@ -129,7 +129,7 @@ export function consumeRateLimitBucket(params: {
     }
 
     if (existing.count >= params.maxRequests) {
-      return existing;
+      return { count: params.maxRequests + 1, resetAt: existing.resetAt };
     }
 
     const count = existing.count + 1;

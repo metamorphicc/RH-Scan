@@ -40,6 +40,8 @@ RH_RPC_URL=
 RH_CHAIN_ID=
 RH_EXPLORER_API_URL=https://robinhoodchain.blockscout.com/api/v2
 RHCHECK_DB_PATH=
+RHCHECK_ENABLE_DEBUG_API=false
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 `RH_EXPLORER_API_URL` is optional and defaults to the public Robinhood Chain Blockscout API v2. It is used to discover the contract creator and verification metadata. `RHCHECK_DB_PATH` is optional; by default snapshots are stored in `data/rhcheck.sqlite`.
@@ -113,6 +115,14 @@ Run offline rule fixtures:
 ```bash
 pnpm test
 ```
+
+Run the browser flow against mocked API responses at mobile, tablet, and desktop widths:
+
+```bash
+pnpm test:e2e
+```
+
+Install the Playwright Chromium browser once with `pnpm exec playwright install chromium` before running the browser suite.
 
 Run the Stage 7 live-address QA list while the dev server is running:
 

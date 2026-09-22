@@ -23,7 +23,8 @@ Caution rules:
 
 - Any critical authority field is unknown.
 - Pool status is unknown.
-- Quote reserves are below the local thin-pool threshold.
+- Quote reserves are below the quote-specific thin-pool threshold.
+- The pool quote asset is unknown.
 - Pool age is 30 minutes or less.
 - Deployer history is unknown.
 - Deployer has no local history.
@@ -40,10 +41,10 @@ Caution rules:
 
 ## Local Thresholds
 
-- Thin quote reserve threshold: `1000` whole quote units.
+- Thin USDG reserve threshold: `1,000 USDG`.
+- Thin WETH reserve threshold: `0.5 WETH`.
 - Fresh pool threshold: `30` minutes.
 - Deployer LP control threshold: `50%`.
 - Serial dead deployer threshold: `3` dead tokens.
 
 These values are placeholders for v0.1 fixtures and can be revised with QA evidence.
-

@@ -20,7 +20,7 @@ export function checkRateLimit(request: Request): RateLimitResult {
     maxRequests: MAX_REQUESTS,
   });
 
-  if (bucket.count >= MAX_REQUESTS) {
+  if (bucket.count > MAX_REQUESTS) {
     return {
       allowed: false,
       remaining: 0,
@@ -61,4 +61,3 @@ function getRequestIp(request: Request): string {
 }
 import { createHash } from "node:crypto";
 import { consumeRateLimitBucket } from "./db";
-
