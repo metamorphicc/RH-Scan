@@ -11,6 +11,11 @@ type CheckResponse = {
   block: number;
   timestamp: string;
   facts: string[];
+  flags: Array<{
+    code: string;
+    label: string;
+    severity: "critical" | "caution";
+  }>;
   cached: boolean;
   rights: {
     metadata: {
@@ -18,6 +23,13 @@ type CheckResponse = {
       symbol: string | null;
     };
   };
+};
+
+type HistoryItem = {
+  block: number;
+  timestamp: string;
+  verdict: Verdict;
+  flags: string[];
 };
 
 type LoadState =
@@ -39,6 +51,7 @@ type TokenCheckPanelProps = {
 
 export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [copyLabel, setCopyLabel] = useState("Copy link");
   const encodedAddress = useMemo(() => encodeURIComponent(rawAddress), [rawAddress]);
 
@@ -84,6 +97,18 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
           status: "ready",
           result: body,
         });
+
+        const historyResponse = await fetch(
+          `/api/history?token=${encodeURIComponent(body.tokenAddress)}&limit=5`,
+          { signal: controller.signal },
+        );
+
+        if (historyResponse.ok) {
+          const historyBody = (await historyResponse.json()) as {
+            items?: HistoryItem[];
+          };
+          setHistory(Array.isArray(historyBody.items) ? historyBody.items : []);
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
@@ -108,7 +133,7 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
   }
 
   return (
-    <section className="page result-page">
+    <section className="page result-page token-desk">
       <div className="brand">
         <span className="brand-mark" aria-hidden="true">
           rh
@@ -118,7 +143,7 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
 
       <div className="result-head">
         <div>
-          <p className="eyebrow">Robinhood Chain</p>
+          <p className="eyebrow">Robinhood Chain snapshot</p>
           <h1>{state.status === "ready" ? state.result.verdict : statusTitle(state)}</h1>
         </div>
         <button className="secondary-button" type="button" onClick={copyLink}>
@@ -145,7 +170,9 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
       {state.status === "invalid" || state.status === "not-found" || state.status === "error" ? (
         <MessageState state={state} rawAddress={rawAddress} />
       ) : null}
-      {state.status === "ready" ? <ReadyState result={state.result} /> : null}
+      {state.status === "ready" ? (
+        <ReadyState history={history} result={state.result} />
+      ) : null}
 
       <p className="disclaimer">Snapshot, not advice, not live tape.</p>
 
@@ -181,7 +208,13 @@ function MessageState({
   );
 }
 
-function ReadyState({ result }: { result: CheckResponse }) {
+function ReadyState({
+  result,
+  history,
+}: {
+  result: CheckResponse;
+  history: HistoryItem[];
+}) {
   const facts = result.facts.slice(0, 3);
 
   return (
@@ -192,8 +225,9 @@ function ReadyState({ result }: { result: CheckResponse }) {
       </div>
 
       <div className="facts-list" aria-label="Token facts">
-        {facts.map((fact) => (
+        {facts.map((fact, index) => (
           <div className="fact-row" key={fact}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
             {fact}
           </div>
         ))}
@@ -213,6 +247,52 @@ function ReadyState({ result }: { result: CheckResponse }) {
           <span className="summary-value">{result.cached ? "hit" : "fresh"}</span>
         </div>
       </div>
+
+      <div className="rule-block">
+        <div>
+          <span className="summary-label">Rule flags</span>
+          <h2>why this verdict</h2>
+        </div>
+        <div className="flag-grid">
+          {result.flags.length > 0 ? (
+            result.flags.slice(0, 8).map((flag) => (
+              <div className="flag-chip" data-severity={flag.severity} key={flag.code}>
+                <b>{flag.code}</b>
+                <span>{flag.label}</span>
+              </div>
+            ))
+          ) : (
+            <div className="flag-chip">
+              <b>no-flags</b>
+              <span>No rule flag was returned for this snapshot.</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="history-block">
+        <div>
+          <span className="summary-label">Memory</span>
+          <h2>snapshot history</h2>
+        </div>
+        <div className="history-list">
+          {history.length > 0 ? (
+            history.map((item) => (
+              <div className="history-row" key={`${item.block}-${item.timestamp}`}>
+                <span>{formatUtc(item.timestamp)}</span>
+                <b>{item.verdict}</b>
+                <small>block {item.block}</small>
+              </div>
+            ))
+          ) : (
+            <div className="history-row">
+              <span>waiting for memory</span>
+              <b>no snapshots yet</b>
+              <small>run another check to stack history</small>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }
@@ -223,7 +303,8 @@ function isCheckResponse(value: Partial<CheckResponse>): value is CheckResponse 
     typeof value.verdict === "string" &&
     typeof value.block === "number" &&
     typeof value.timestamp === "string" &&
-    Array.isArray(value.facts)
+    Array.isArray(value.facts) &&
+    Array.isArray(value.flags)
   );
 }
 

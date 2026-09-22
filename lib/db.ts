@@ -62,7 +62,7 @@ export async function getSnapshotHistory(
   limit = 20,
 ): Promise<SnapshotHistoryRecord[]> {
   const db = getDatabase();
-  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const boundedLimit = Math.min(Math.max(limit, 1), 100);
   const rows = db
     .prepare(
       `select token, block, ts as timestamp, raw_json as rawJson, verdict, flags
@@ -71,7 +71,7 @@ export async function getSnapshotHistory(
        order by ts desc
        limit ?`,
     )
-    .all(token, safeLimit) as Array<{
+    .all(token, boundedLimit) as Array<{
     token: string;
     block: number;
     timestamp: string;
