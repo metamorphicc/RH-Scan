@@ -9,7 +9,7 @@ This repository currently includes Stages 0-8. It provides the app skeleton, an 
 - A read-only token check interface for Robinhood Chain.
 - A result page that routes an entered address to `/t/[address]` and displays the latest check result.
 - A temporary `GET /api/rights?token=0x...` endpoint that reads known view methods with `eth_call`.
-- A temporary `GET /api/pool?token=0x...` endpoint that can read V2 pools once verified Robinhood Chain venues are added.
+- A temporary `GET /api/pool?token=0x...` endpoint that reads verified Uniswap V2 and V3 pools against WETH and USDG.
 - A `GET /api/check?token=0x...` endpoint that combines rights, pool facts, deployer stats, rules, caching, and snapshot storage.
 - A `GET /api/og?token=0x...` image endpoint for link previews.
 - A `GET /api/history?token=0x...` endpoint that returns previous snapshots for one token.
@@ -25,7 +25,7 @@ This repository currently includes Stages 0-8. It provides the app skeleton, an 
 - No buy button.
 - No LLM scoring.
 - No wallet actions, alerts, or payments.
-- No invented DEX/factory addresses; `lib/venues.ts` must be filled only with verified Robinhood Chain venues.
+- No invented DEX/factory addresses; venue configuration is sourced from official Uniswap deployment documentation and checked on Robinhood Chain Blockscout.
 - No history UI, alerts, or payments.
 - No guarantee language about token outcomes.
 
@@ -71,7 +71,7 @@ To test the Stage 2 pool debug endpoint:
 curl "http://localhost:3000/api/pool?token=0x..."
 ```
 
-Until verified venues are added to `lib/venues.ts`, pool status is expected to be `unknown`.
+The pool reader checks the verified Uniswap V2 and V3 factories against WETH and USDG pairs. V3 checks the 0.01%, 0.05%, 0.3%, and 1% fee tiers.
 
 To test the Stage 4 check endpoint:
 
