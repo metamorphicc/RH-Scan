@@ -194,7 +194,7 @@ function buildFacts({
   explorer: ExplorerContractInfo;
 }): string[] {
   return [
-    `rights: mint ${rights.flags.mint}, freeze ${rights.flags.freeze}, owner ${rights.flags.owner}, fee wallet ${rights.flags.feeWallet}`,
+    `rights: mint ${rights.flags.mint}, freeze ${rights.flags.freeze}, owner ${rights.flags.owner}, fee wallet ${rights.flags.feeWallet}, proxy ${rights.proxy.type}`,
     pool.status === "present"
       ? `pool: found on ${pool.venueLabel ?? "unknown venue"} with quote reserve ${pool.reserveQuoteFormatted ?? "unknown"} ${pool.quoteSymbol ?? ""}`.trim()
       : `pool: ${pool.status}`,

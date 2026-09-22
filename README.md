@@ -17,6 +17,8 @@ This repository currently includes Stages 0-8. It provides the app skeleton, an 
 - A Stage 7 QA list at `qa/addresses.md` with 20 Robinhood Chain token addresses and 5 explorer spot checks.
 - Offline deterministic rules that can produce `don't`, `thin`, or `ok to size small`.
 
+Rights inspection covers common Ownable and Ownable2Step getters, pause/blacklist/freeze controls, enumerable AccessControl role members, and EIP-1967 implementation or beacon slots. Unsupported custom authority patterns remain `unknown`.
+
 ## What It Is Not
 
 - No wallet connection.
