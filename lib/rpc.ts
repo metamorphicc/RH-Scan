@@ -62,6 +62,10 @@ export function createRpcClient(config = getRpcConfigFromEnv()): RpcClient {
 
   return createPublicClient({
     chain: robinhoodChain,
-    transport: http(config.rpcUrl),
+    transport: http(config.rpcUrl, {
+      retryCount: 2,
+      retryDelay: 300,
+      timeout: 10_000,
+    }),
   });
 }

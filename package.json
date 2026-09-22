@@ -11,12 +11,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "better-sqlite3": "^13.0.3",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
     "viem": "^2.56.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

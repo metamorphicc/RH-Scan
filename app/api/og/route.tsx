@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { normalizeTokenAddress } from "@/lib/address";
-import { checkToken } from "@/lib/check";
+import { getLatestSnapshot } from "@/lib/db";
 import type { Verdict } from "@/lib/rules";
 
 export const runtime = "nodejs";
@@ -95,12 +95,17 @@ export async function GET(request: Request) {
 
 async function verdictForOg(token: string): Promise<Verdict> {
   try {
-    const result = await checkToken(token);
+    const normalizedToken = normalizeTokenAddress(token);
+    const snapshot = await getLatestSnapshot(normalizedToken);
 
-    return result.verdict;
+    return isVerdict(snapshot?.verdict) ? snapshot.verdict : "thin";
   } catch {
     return "thin";
   }
+}
+
+function isVerdict(value: unknown): value is Verdict {
+  return value === "don't" || value === "thin" || value === "ok to size small";
 }
 
 function normalizeForOg(token: string): string {
@@ -118,4 +123,3 @@ function shortAddress(address: string): string {
 
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
-

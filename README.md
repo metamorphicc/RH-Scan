@@ -13,7 +13,7 @@ This repository currently includes Stages 0-8. It provides the app skeleton, an 
 - A `GET /api/check?token=0x...` endpoint that combines rights, pool facts, deployer stats, rules, caching, and snapshot storage.
 - A `GET /api/og?token=0x...` image endpoint for link previews.
 - A `GET /api/history?token=0x...` endpoint that returns previous snapshots for one token.
-- A rough per-IP in-memory rate limit on `/api/check`.
+- A persistent hashed-IP rate limit on `/api/check`.
 - A Stage 7 QA list at `qa/addresses.md` with 20 Robinhood Chain token addresses and 5 explorer spot checks.
 - Offline deterministic rules that can produce `don't`, `thin`, or `ok to size small`.
 
@@ -43,6 +43,8 @@ RHCHECK_DB_PATH=
 ```
 
 `RH_EXPLORER_API_URL` is optional and defaults to the public Robinhood Chain Blockscout API v2. It is used to discover the contract creator and verification metadata. `RHCHECK_DB_PATH` is optional; by default snapshots are stored in `data/rhcheck.sqlite`.
+
+`RHCHECK_ENABLE_DEBUG_API` may be set to `true` to expose `/api/rights` and `/api/pool` in production. They are available automatically during local development and return 404 in production by default.
 
 ## Run Locally
 
@@ -96,13 +98,15 @@ To read previous snapshots:
 curl "http://localhost:3000/api/history?token=0x..."
 ```
 
-The check endpoint has a rough in-memory limit of 60 requests per minute per IP.
+The check endpoint has a persistent limit of 60 requests per minute per hashed IP. RPC requests use bounded timeouts and retries. `GET /api/health` reports database and RPC configuration readiness without making an RPC call.
 
 To preview the OG image endpoint:
 
 ```bash
 curl -I "http://localhost:3000/api/og?token=0x..."
 ```
+
+OG previews read the latest stored snapshot and never trigger a new RPC check or database write.
 
 Run offline rule fixtures:
 

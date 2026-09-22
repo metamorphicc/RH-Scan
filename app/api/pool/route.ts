@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { AddressValidationError } from "@/lib/address";
 import { readPoolFacts } from "@/lib/pool";
 import { RpcConfigError } from "@/lib/rpc";
+import { debugApiEnabled } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  if (!debugApiEnabled()) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const params = new URL(request.url).searchParams;
   const token = params.get("token");
   const deployer = params.get("deployer");
@@ -29,7 +34,7 @@ export async function GET(request: Request) {
     if (error instanceof AddressValidationError) {
       return NextResponse.json(
         {
-          error: error.message,
+          error: "Pool check is unavailable right now.",
         },
         { status: 400 },
       );
@@ -46,10 +51,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unknown pool read error.",
+        error: "Pool check is unavailable right now.",
       },
       { status: 502 },
     );
   }
 }
-

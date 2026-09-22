@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { AddressValidationError } from "@/lib/address";
 import { readTokenRightsDebug } from "@/lib/flags";
 import { RpcConfigError } from "@/lib/rpc";
+import { debugApiEnabled } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  if (!debugApiEnabled()) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   const token = new URL(request.url).searchParams.get("token");
 
   if (!token) {
@@ -34,7 +39,7 @@ export async function GET(request: Request) {
     if (error instanceof RpcConfigError) {
       return NextResponse.json(
         {
-          error: error.message,
+          error: "Rights check is unavailable right now.",
         },
         { status: 500 },
       );
@@ -42,10 +47,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unknown rights read error.",
+        error: "Rights check is unavailable right now.",
       },
       { status: 502 },
     );
   }
 }
-

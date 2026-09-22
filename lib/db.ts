@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import Database from "better-sqlite3";
 
 export type SnapshotRecord = {
   token: string;
@@ -24,7 +24,7 @@ export type SnapshotHistoryRecord = SnapshotRecord & {
 
 const DB_PATH = process.env.RHCHECK_DB_PATH ?? join(process.cwd(), "data", "rhcheck.sqlite");
 
-let database: DatabaseSync | null = null;
+let database: Database.Database | null = null;
 
 export async function saveSnapshot(record: SnapshotRecord): Promise<void> {
   const db = getDatabase();
@@ -90,6 +90,65 @@ export async function getSnapshotHistory(
   }));
 }
 
+export async function getLatestSnapshot(
+  token: string,
+): Promise<SnapshotHistoryRecord | null> {
+  const [latest] = await getSnapshotHistory(token, 1);
+  return latest ?? null;
+}
+
+export function consumeRateLimitBucket(params: {
+  key: string;
+  now: number;
+  windowMs: number;
+  maxRequests: number;
+}): { count: number; resetAt: number } {
+  const db = getDatabase();
+  const consume = db.transaction(() => {
+    const existing = db
+      .prepare(
+        `select request_count as count, reset_at as resetAt
+         from rate_limits
+         where bucket_key = ?`,
+      )
+      .get(params.key) as { count: number; resetAt: number } | undefined;
+
+    if (!existing || existing.resetAt <= params.now) {
+      const bucket = {
+        count: 1,
+        resetAt: params.now + params.windowMs,
+      };
+      db.prepare(
+        `insert into rate_limits (bucket_key, request_count, reset_at)
+         values (?, ?, ?)
+         on conflict(bucket_key) do update set
+           request_count = excluded.request_count,
+           reset_at = excluded.reset_at`,
+      ).run(params.key, bucket.count, bucket.resetAt);
+      return bucket;
+    }
+
+    if (existing.count >= params.maxRequests) {
+      return existing;
+    }
+
+    const count = existing.count + 1;
+    db.prepare(
+      `update rate_limits set request_count = ? where bucket_key = ?`,
+    ).run(count, params.key);
+    return { count, resetAt: existing.resetAt };
+  });
+
+  return consume.immediate();
+}
+
+export function checkDatabaseHealth(): boolean {
+  const row = getDatabase().prepare("select 1 as ok").get() as
+    | { ok: number }
+    | undefined;
+  return row?.ok === 1;
+}
+
 export async function upsertDeployerStats(params: {
   address: string;
   tokenAddress: string;
@@ -138,13 +197,15 @@ export async function upsertDeployerStats(params: {
   };
 }
 
-function getDatabase(): DatabaseSync {
+function getDatabase(): Database.Database {
   if (database) {
     return database;
   }
 
   mkdirSync(dirname(DB_PATH), { recursive: true });
-  database = new DatabaseSync(DB_PATH);
+  database = new Database(DB_PATH);
+  database.pragma("journal_mode = WAL");
+  database.pragma("busy_timeout = 5000");
   database.exec(`
     create table if not exists snapshots (
       token text not null,
@@ -164,6 +225,15 @@ function getDatabase(): DatabaseSync {
       dead_count integer not null,
       updated_at text not null
     );
+
+    create table if not exists rate_limits (
+      bucket_key text primary key,
+      request_count integer not null,
+      reset_at integer not null
+    );
+
+    create index if not exists rate_limits_reset_idx
+      on rate_limits (reset_at);
   `);
 
   return database;

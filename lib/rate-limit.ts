@@ -11,30 +11,14 @@ export type RateLimitResult =
 
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 60;
-const buckets = new Map<
-  string,
-  {
-    count: number;
-    resetAt: number;
-  }
->();
-
 export function checkRateLimit(request: Request): RateLimitResult {
-  const ip = getRequestIp(request);
   const now = Date.now();
-  const bucket = buckets.get(ip);
-
-  if (!bucket || bucket.resetAt <= now) {
-    buckets.set(ip, {
-      count: 1,
-      resetAt: now + WINDOW_MS,
-    });
-
-    return {
-      allowed: true,
-      remaining: MAX_REQUESTS - 1,
-    };
-  }
+  const bucket = consumeRateLimitBucket({
+    key: hashIp(getRequestIp(request)),
+    now,
+    windowMs: WINDOW_MS,
+    maxRequests: MAX_REQUESTS,
+  });
 
   if (bucket.count >= MAX_REQUESTS) {
     return {
@@ -44,12 +28,14 @@ export function checkRateLimit(request: Request): RateLimitResult {
     };
   }
 
-  bucket.count += 1;
-
   return {
     allowed: true,
     remaining: MAX_REQUESTS - bucket.count,
   };
+}
+
+function hashIp(ip: string): string {
+  return createHash("sha256").update(ip).digest("hex");
 }
 
 export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
@@ -73,4 +59,6 @@ function getRequestIp(request: Request): string {
 
   return request.headers.get("x-real-ip") ?? "unknown";
 }
+import { createHash } from "node:crypto";
+import { consumeRateLimitBucket } from "./db";
 
