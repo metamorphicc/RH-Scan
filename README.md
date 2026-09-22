@@ -24,7 +24,7 @@ This repository currently includes Stages 0-8. It provides the app skeleton, an 
 - No swap flow.
 - No buy button.
 - No LLM scoring.
-- No explorer-backed deployer discovery, OG cards, alerts, or payments.
+- No wallet actions, alerts, or payments.
 - No invented DEX/factory addresses; `lib/venues.ts` must be filled only with verified Robinhood Chain venues.
 - No history UI, alerts, or payments.
 - No guarantee language about token outcomes.
@@ -36,11 +36,11 @@ Copy `.env.example` to `.env.local` for RPC reads:
 ```bash
 RH_RPC_URL=
 RH_CHAIN_ID=
-RH_EXPLORER_API_URL=
+RH_EXPLORER_API_URL=https://robinhoodchain.blockscout.com/api/v2
 RHCHECK_DB_PATH=
 ```
 
-`RH_EXPLORER_API_URL` is reserved for later stages. `RHCHECK_DB_PATH` is optional; by default snapshots are stored in `data/rhcheck.sqlite`.
+`RH_EXPLORER_API_URL` is optional and defaults to the public Robinhood Chain Blockscout API v2. It is used to discover the contract creator and verification metadata. `RHCHECK_DB_PATH` is optional; by default snapshots are stored in `data/rhcheck.sqlite`.
 
 ## Run Locally
 

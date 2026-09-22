@@ -5,6 +5,10 @@ import {
   upsertDeployerStats,
   type DeployerRecord,
 } from "./db";
+import {
+  readExplorerContractInfo,
+  type ExplorerContractInfo,
+} from "./explorer";
 import { readTokenRightsDebug, type TokenRightsDebug } from "./flags";
 import { readPoolFacts, type PoolFacts } from "./pool";
 import { createRpcClient, type RpcClient } from "./rpc";
@@ -22,6 +26,7 @@ export type CheckResult = RuleResult & {
   facts: string[];
   rights: TokenRightsDebug;
   pool: PoolFacts;
+  explorer: ExplorerContractInfo;
   deployer: DeployerRecord | null;
   cached: boolean;
 };
@@ -45,10 +50,10 @@ export async function checkToken(
   options: CheckTokenOptions = {},
 ): Promise<CheckResult> {
   const normalizedTokenAddress = normalizeTokenAddress(tokenAddress);
-  const normalizedDeployerAddress = options.deployerAddress
+  const requestedDeployerAddress = options.deployerAddress
     ? normalizeTokenAddress(options.deployerAddress)
     : null;
-  const cacheKey = `${normalizedTokenAddress}:${normalizedDeployerAddress ?? "no-deployer"}`;
+  const cacheKey = `${normalizedTokenAddress}:${requestedDeployerAddress ?? "auto-deployer"}`;
   const cached = cache.get(cacheKey);
 
   if (cached && cached.expiresAt > Date.now()) {
@@ -57,6 +62,10 @@ export async function checkToken(
       cached: true,
     };
   }
+
+  const explorer = await readExplorerContractInfo(normalizedTokenAddress);
+  const normalizedDeployerAddress =
+    requestedDeployerAddress ?? explorer.creatorAddress;
 
   const client = options.client ?? createRpcClient();
   const [rights, pool, blockNumber, existingDeployer] = await Promise.all([
@@ -91,7 +100,8 @@ export async function checkToken(
   const facts = buildFacts({
     rights,
     pool,
-    deployer: existingDeployer,
+    deployer: deployerForRules,
+    explorer,
   });
   const result: CheckResult = {
     tokenAddress: normalizedTokenAddress,
@@ -100,6 +110,7 @@ export async function checkToken(
     facts,
     rights,
     pool,
+    explorer,
     deployer: existingDeployer,
     cached: false,
     ...ruleResult,
@@ -112,6 +123,7 @@ export async function checkToken(
     rawJson: {
       rights,
       pool,
+      explorer,
       deployer: existingDeployer,
       ruleSnapshot,
       facts,
@@ -173,19 +185,23 @@ function buildFacts({
   rights,
   pool,
   deployer,
+  explorer,
 }: {
   rights: TokenRightsDebug;
   pool: PoolFacts;
   deployer: DeployerRecord | null;
+  explorer: ExplorerContractInfo;
 }): string[] {
   return [
     `rights: mint ${rights.flags.mint}, freeze ${rights.flags.freeze}, owner ${rights.flags.owner}, fee wallet ${rights.flags.feeWallet}`,
     pool.status === "present"
       ? `pool: found on ${pool.venueLabel ?? "unknown venue"} with quote reserve ${pool.reserveQuote ?? "unknown"}`
       : `pool: ${pool.status}`,
-    deployer
-      ? `deployer: ${deployer.tokensSeen} tokens seen, ${deployer.deadCount} dead`
+    explorer.creatorAddress && deployer
+      ? `deployer: ${explorer.creatorAddress}, ${deployer.tokensSeen} tokens seen, ${deployer.deadCount} dead`
       : "deployer: unknown",
+    explorer.status === "available"
+      ? `source: explorer ${explorer.isVerified ? "verified" : "not verified"}`
+      : "source: explorer unavailable",
   ];
 }
-

@@ -8,5 +8,5 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["lib/rules.ts", "tests/**/*.ts", "tests/**/*.json"]
+  "include": ["lib/explorer.ts", "lib/rules.ts", "tests/**/*.ts", "tests/**/*.json"]
 }
