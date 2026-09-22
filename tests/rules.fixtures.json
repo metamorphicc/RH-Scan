@@ -13,7 +13,8 @@
       "pool": {
         "status": "present",
         "deployerShare": 1,
-        "reserveQuote": "5000",
+        "reserveQuote": "5000000000",
+        "quoteSymbol": "USDG",
         "ageMinutes": 240
       },
       "deployer": {
@@ -37,6 +38,7 @@
         "status": "absent",
         "deployerShare": null,
         "reserveQuote": null,
+        "quoteSymbol": null,
         "ageMinutes": null
       },
       "deployer": {
@@ -59,7 +61,8 @@
       "pool": {
         "status": "present",
         "deployerShare": 2,
-        "reserveQuote": "5000",
+        "reserveQuote": "5000000000",
+        "quoteSymbol": "USDG",
         "ageMinutes": 240
       },
       "deployer": {
@@ -82,7 +85,8 @@
       "pool": {
         "status": "present",
         "deployerShare": 3,
-        "reserveQuote": "10",
+        "reserveQuote": "10000000",
+        "quoteSymbol": "USDG",
         "ageMinutes": 240
       },
       "deployer": {
@@ -105,7 +109,8 @@
       "pool": {
         "status": "present",
         "deployerShare": 4,
-        "reserveQuote": "5000",
+        "reserveQuote": "5000000000",
+        "quoteSymbol": "USDG",
         "ageMinutes": 240
       },
       "deployer": {
@@ -115,4 +120,3 @@
     }
   }
 ]
-

@@ -1,4 +1,4 @@
-import { parseAbi, type Address } from "viem";
+import { formatUnits, parseAbi, type Address } from "viem";
 import { normalizeTokenAddress } from "./address";
 import { createRpcClient, type RpcClient } from "./rpc";
 import {
@@ -20,9 +20,11 @@ export type PoolFacts = {
   pairAddress: Address | null;
   quoteToken: Address | null;
   quoteSymbol: string | null;
+  quoteDecimals: number | null;
   deployerShare: number | null;
   reserveToken: string | null;
   reserveQuote: string | null;
+  reserveQuoteFormatted: string | null;
 };
 
 export type ReadPoolFactsOptions = {
@@ -159,9 +161,11 @@ function unknownPoolFacts(): PoolFacts {
     pairAddress: null,
     quoteToken: null,
     quoteSymbol: null,
+    quoteDecimals: null,
     deployerShare: null,
     reserveToken: null,
     reserveQuote: null,
+    reserveQuoteFormatted: null,
   };
 }
 
@@ -248,9 +252,14 @@ async function readV2PairFacts({
     pairAddress,
     quoteToken: quoteToken.address,
     quoteSymbol: quoteToken.symbol,
+    quoteDecimals: quoteToken.decimals,
     deployerShare,
     reserveToken: reserveToken?.toString() ?? null,
     reserveQuote: reserveQuote?.toString() ?? null,
+    reserveQuoteFormatted:
+      reserveQuote === undefined || reserveQuote === null
+        ? null
+        : formatUnits(reserveQuote, quoteToken.decimals),
   };
 }
 
@@ -283,9 +292,14 @@ async function readV3PoolFacts({
     pairAddress: poolAddress,
     quoteToken: quoteToken.address,
     quoteSymbol: quoteToken.symbol,
+    quoteDecimals: quoteToken.decimals,
     deployerShare: null,
     reserveToken: reserveToken?.toString() ?? null,
     reserveQuote: reserveQuote?.toString() ?? null,
+    reserveQuoteFormatted:
+      reserveQuote === null
+        ? null
+        : formatUnits(reserveQuote, quoteToken.decimals),
   };
 }
 

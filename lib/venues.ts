@@ -3,6 +3,7 @@ import type { Address } from "viem";
 export type QuoteToken = {
   address: Address;
   symbol: "WETH" | "USDG";
+  decimals: number;
 };
 
 type BaseVenue = {
@@ -29,10 +30,12 @@ export const QUOTE_TOKENS: readonly QuoteToken[] = [
   {
     address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
     symbol: "WETH",
+    decimals: 18,
   },
   {
     address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
     symbol: "USDG",
+    decimals: 6,
   },
 ];
 

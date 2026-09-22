@@ -172,6 +172,7 @@ function toRuleSnapshot({
       status: pool.status as FactStatus,
       deployerShare: pool.deployerShare,
       reserveQuote: pool.reserveQuote,
+      quoteSymbol: pool.quoteSymbol,
       ageMinutes: null,
     },
     deployer: {
@@ -195,7 +196,7 @@ function buildFacts({
   return [
     `rights: mint ${rights.flags.mint}, freeze ${rights.flags.freeze}, owner ${rights.flags.owner}, fee wallet ${rights.flags.feeWallet}`,
     pool.status === "present"
-      ? `pool: found on ${pool.venueLabel ?? "unknown venue"} with quote reserve ${pool.reserveQuote ?? "unknown"}`
+      ? `pool: found on ${pool.venueLabel ?? "unknown venue"} with quote reserve ${pool.reserveQuoteFormatted ?? "unknown"} ${pool.quoteSymbol ?? ""}`.trim()
       : `pool: ${pool.status}`,
     explorer.creatorAddress && deployer
       ? `deployer: ${explorer.creatorAddress}, ${deployer.tokensSeen} tokens seen, ${deployer.deadCount} dead`

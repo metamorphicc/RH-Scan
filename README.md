@@ -72,6 +72,7 @@ curl "http://localhost:3000/api/pool?token=0x..."
 ```
 
 The pool reader checks the verified Uniswap V2 and V3 factories against WETH and USDG pairs. V3 checks the 0.01%, 0.05%, 0.3%, and 1% fee tiers.
+Quote reserves are returned both as raw base units and normalized decimal amounts. Deterministic thin-liquidity thresholds are quote-specific: 1,000 USDG or 0.5 WETH.
 
 To test the Stage 4 check endpoint:
 

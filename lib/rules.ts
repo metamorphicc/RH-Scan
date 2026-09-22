@@ -20,6 +20,7 @@ export type RuleSnapshot = {
     status: FactStatus;
     deployerShare: number | null;
     reserveQuote: string | null;
+    quoteSymbol: string | null;
     ageMinutes: number | null;
   };
   deployer: {
@@ -34,7 +35,10 @@ export type RuleResult = {
 };
 
 export const RULE_THRESHOLDS = {
-  thinPoolReserveQuote: 1_000n,
+  thinPoolReserveQuote: {
+    USDG: 1_000_000_000n,
+    WETH: 500_000_000_000_000_000n,
+  },
   newDeployerTokensSeen: 0,
   serialDeadDeployerCount: 3,
   deployerControlsPoolPercent: 50,
@@ -129,10 +133,19 @@ function poolFlags(snapshot: RuleSnapshot): RuleFlag[] {
 
   if (
     snapshot.pool.reserveQuote !== null &&
+    snapshot.pool.quoteSymbol !== null &&
+    isKnownQuoteSymbol(snapshot.pool.quoteSymbol) &&
     parseWholeUnits(snapshot.pool.reserveQuote) <
-      RULE_THRESHOLDS.thinPoolReserveQuote
+      RULE_THRESHOLDS.thinPoolReserveQuote[snapshot.pool.quoteSymbol]
   ) {
     flags.push(thin("pool-thin", "Pool quote reserves are thin."));
+  }
+
+  if (
+    snapshot.pool.status === "present" &&
+    (!snapshot.pool.quoteSymbol || !isKnownQuoteSymbol(snapshot.pool.quoteSymbol))
+  ) {
+    flags.push(thin("pool-quote-unknown", "Pool quote asset is unknown."));
   }
 
   if (
@@ -199,4 +212,10 @@ function parseWholeUnits(value: string): bigint {
   } catch {
     return 0n;
   }
+}
+
+function isKnownQuoteSymbol(
+  value: string,
+): value is keyof typeof RULE_THRESHOLDS.thinPoolReserveQuote {
+  return value === "USDG" || value === "WETH";
 }
