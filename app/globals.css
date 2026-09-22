@@ -576,6 +576,29 @@ h3 {
   color: var(--accent);
 }
 
+.fact-content {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fact-content > span {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.fact-source {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.fact-source a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .rule-block,
 .history-block {
   display: grid;

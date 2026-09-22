@@ -24,11 +24,21 @@ export type CheckResult = RuleResult & {
   block: number;
   timestamp: string;
   facts: string[];
+  factDetails: CheckFact[];
   rights: TokenRightsDebug;
   pool: PoolFacts;
   explorer: ExplorerContractInfo;
   deployer: DeployerRecord | null;
   cached: boolean;
+};
+
+export type CheckFact = {
+  id: "rights" | "pool" | "deployer";
+  label: string;
+  value: string;
+  source: string;
+  sourceUrl: string | null;
+  observedAt: string;
 };
 
 export type CheckTokenOptions = {
@@ -97,17 +107,20 @@ export async function checkToken(
     deployer: deployerForRules,
   });
   const ruleResult = evaluate(ruleSnapshot);
-  const facts = buildFacts({
+  const factDetails = buildFactDetails({
     rights,
     pool,
     deployer: deployerForRules,
     explorer,
+    observedAt: timestamp,
   });
+  const facts = factDetails.map((fact) => fact.value);
   const result: CheckResult = {
     tokenAddress: normalizedTokenAddress,
     block: Number(blockNumber),
     timestamp,
     facts,
+    factDetails,
     rights,
     pool,
     explorer,
@@ -127,6 +140,7 @@ export async function checkToken(
       deployer: existingDeployer,
       ruleSnapshot,
       facts,
+      factDetails,
     },
     verdict: result.verdict,
     flags: result.flags.map((flag) => flag.code),
@@ -182,27 +196,61 @@ function toRuleSnapshot({
   };
 }
 
-function buildFacts({
+function buildFactDetails({
   rights,
   pool,
   deployer,
   explorer,
+  observedAt,
 }: {
   rights: TokenRightsDebug;
   pool: PoolFacts;
   deployer: DeployerRecord | null;
   explorer: ExplorerContractInfo;
-}): string[] {
+  observedAt: string;
+}): CheckFact[] {
   return [
-    `rights: mint ${rights.flags.mint}, freeze ${rights.flags.freeze}, owner ${rights.flags.owner}, fee wallet ${rights.flags.feeWallet}, proxy ${rights.proxy.type}`,
-    pool.status === "present"
-      ? `pool: found on ${pool.venueLabel ?? "unknown venue"} with quote reserve ${pool.reserveQuoteFormatted ?? "unknown"} ${pool.quoteSymbol ?? ""}`.trim()
-      : `pool: ${pool.status}`,
-    explorer.creatorAddress && deployer
-      ? `deployer: ${explorer.creatorAddress}, ${deployer.tokensSeen} tokens seen, ${deployer.deadCount} dead`
-      : "deployer: unknown",
-    explorer.status === "available"
-      ? `source: explorer ${explorer.isVerified ? "verified" : "not verified"}`
-      : "source: explorer unavailable",
+    {
+      id: "rights",
+      label: "Contract rights",
+      value: `mint ${rights.flags.mint}, freeze ${rights.flags.freeze}, owner ${rights.flags.owner}, fee wallet ${rights.flags.feeWallet}, proxy ${rights.proxy.type}`,
+      source: "Robinhood Chain RPC",
+      sourceUrl: explorer.explorerUrl,
+      observedAt,
+    },
+    {
+      id: "pool",
+      label: "Liquidity pool",
+      value:
+        pool.status === "present"
+          ? `${pool.venueLabel ?? "unknown venue"}, ${pool.reserveQuoteFormatted ?? "unknown"} ${pool.quoteSymbol ?? "quote"}`
+          : pool.status,
+      source: pool.venueLabel ? `${pool.venueLabel} factory` : "DEX factories",
+      sourceUrl: pool.pairAddress
+        ? explorerAddressUrl(explorer.explorerUrl, pool.pairAddress)
+        : null,
+      observedAt,
+    },
+    {
+      id: "deployer",
+      label: "Contract creator",
+      value:
+        explorer.creatorAddress && deployer
+          ? `${explorer.creatorAddress}, ${deployer.tokensSeen} tokens seen, ${deployer.deadCount} dead`
+          : "unknown",
+      source: "Blockscout + local history",
+      sourceUrl: explorer.creatorAddress
+        ? explorerAddressUrl(explorer.explorerUrl, explorer.creatorAddress)
+        : explorer.explorerUrl,
+      observedAt,
+    },
   ];
+}
+
+function explorerAddressUrl(baseUrl: string, address: string): string {
+  try {
+    return new URL(`/address/${address}`, baseUrl).toString();
+  } catch {
+    return baseUrl;
+  }
 }

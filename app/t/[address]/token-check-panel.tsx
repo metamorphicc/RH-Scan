@@ -11,6 +11,14 @@ type CheckResponse = {
   block: number;
   timestamp: string;
   facts: string[];
+  factDetails: Array<{
+    id: string;
+    label: string;
+    value: string;
+    source: string;
+    sourceUrl: string | null;
+    observedAt: string;
+  }>;
   flags: Array<{
     code: string;
     label: string;
@@ -215,7 +223,7 @@ function ReadyState({
   result: CheckResponse;
   history: HistoryItem[];
 }) {
-  const facts = result.facts.slice(0, 3);
+  const facts = result.factDetails.slice(0, 3);
 
   return (
     <>
@@ -226,9 +234,22 @@ function ReadyState({
 
       <div className="facts-list" aria-label="Token facts">
         {facts.map((fact, index) => (
-          <div className="fact-row" key={fact}>
+          <div className="fact-row" key={fact.id}>
             <span>{String(index + 1).padStart(2, "0")}</span>
-            {fact}
+            <div className="fact-content">
+              <b>{fact.label}</b>
+              <span>{fact.value}</span>
+              <small className="fact-source">
+                {fact.sourceUrl ? (
+                  <a href={fact.sourceUrl} rel="noreferrer" target="_blank">
+                    {fact.source}
+                  </a>
+                ) : (
+                  fact.source
+                )}
+                {` / ${formatUtc(fact.observedAt)}`}
+              </small>
+            </div>
           </div>
         ))}
       </div>
@@ -304,6 +325,7 @@ function isCheckResponse(value: Partial<CheckResponse>): value is CheckResponse 
     typeof value.block === "number" &&
     typeof value.timestamp === "string" &&
     Array.isArray(value.facts) &&
+    Array.isArray(value.factDetails) &&
     Array.isArray(value.flags)
   );
 }
