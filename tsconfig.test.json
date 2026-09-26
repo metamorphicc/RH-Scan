@@ -12,6 +12,7 @@
     "lib/db.ts",
     "lib/explorer.ts",
     "lib/history.ts",
+    "lib/pool-selection.ts",
     "lib/rules.ts",
     "lib/robinhood.ts",
     "tests/**/*.ts",

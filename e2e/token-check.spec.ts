@@ -3,6 +3,32 @@ import { expect, test } from "@playwright/test";
 const TOKEN = "0x492641F648a4986844848E0beFE66D14817bCE34";
 const OBSERVED_AT = "2026-09-22T12:00:00.000Z";
 
+test("rejects an invalid address before navigation", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Token address").fill("not-an-address");
+  await page.getByRole("button", { name: "Check token" }).click();
+
+  await expect(page.locator("#address-error")).toHaveText(
+    "Enter a valid 0x EVM address.",
+  );
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test("offers a retry when a check service fails", async ({ page }) => {
+  await page.route("**/api/check?token=**", async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      json: { error: "Check is unavailable right now." },
+    });
+  });
+
+  await page.goto(`/t/${TOKEN}`);
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("unavailable");
+  await expect(page.getByRole("button", { name: "Retry check" })).toBeVisible();
+});
+
 test("checks a token without layout overflow", async ({ page }, testInfo) => {
   await page.route("**/api/check?token=**", async (route) => {
     await route.fulfill({

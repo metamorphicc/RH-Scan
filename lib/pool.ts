@@ -1,5 +1,6 @@
 import { formatUnits, parseAbi, type Address } from "viem";
 import { normalizeTokenAddress } from "./address";
+import { selectDeepestPool, statusWhenNoPool } from "./pool-selection";
 import { createRpcClient, type RpcClient } from "./rpc";
 import {
   VENUES,
@@ -131,9 +132,12 @@ export async function readPoolFacts(
   );
 
   if (candidates.length === 0) {
-    return lookupResults.some((result) => result.status === "error")
+    const status = statusWhenNoPool(
+      lookupResults.map((result) => result.status),
+    );
+    return status === "unknown"
       ? unknownPoolFacts()
-      : { ...unknownPoolFacts(), status: "absent" };
+      : { ...unknownPoolFacts(), status };
   }
 
   const pools = await Promise.all(
@@ -158,9 +162,7 @@ export async function readPoolFacts(
     ),
   );
 
-  return pools.reduce((deepest, pool) =>
-    poolDepth(pool) > poolDepth(deepest) ? pool : deepest,
-  );
+  return selectDeepestPool(pools);
 }
 
 function unknownPoolFacts(): PoolFacts {
@@ -410,17 +412,3 @@ const ERC20_ABI = parseAbi([
 function isNonZeroAddress(address: Address | null): address is Address {
   return Boolean(address && address.toLowerCase() !== ZERO_ADDRESS);
 }
-
-function poolDepth(pool: PoolFacts): bigint {
-  if (!pool.reserveQuote || !pool.quoteSymbol) {
-    return -1n;
-  }
-
-  const quote = QUOTE_DEPTH_BASELINES[pool.quoteSymbol];
-  return quote ? (BigInt(pool.reserveQuote) * 1_000_000n) / quote : -1n;
-}
-
-const QUOTE_DEPTH_BASELINES: Record<string, bigint> = {
-  USDG: 1_000_000_000n,
-  WETH: 500_000_000_000_000_000n,
-};
