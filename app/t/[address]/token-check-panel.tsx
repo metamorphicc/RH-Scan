@@ -31,6 +31,19 @@ type CheckResponse = {
       symbol: string | null;
     };
   };
+  robinhood: {
+    status: "canonical" | "not-listed" | "unavailable";
+    sourceUrl: string;
+    observedAt: string;
+    asset: null | {
+      tokenSymbol: string;
+      tokenName: string;
+      currentMultiplier: string | null;
+      pendingMultiplier: string | null;
+      pendingMultiplierEffectiveTime: string | null;
+      status: string | null;
+    };
+  };
 };
 
 type HistoryItem = {
@@ -274,6 +287,24 @@ function ReadyState({
         </div>
       </div>
 
+      <div className="identity-block">
+        <div>
+          <span className="summary-label">Official registry</span>
+          <h2>asset identity</h2>
+        </div>
+        <div className="identity-details">
+          <b>{identityTitle(result)}</b>
+          <span>{identityDetail(result)}</span>
+          <small>
+            <a href={result.robinhood.sourceUrl} rel="noreferrer" target="_blank">
+              Robinhood Stock Token API
+            </a>
+            {` / ${formatUtc(result.robinhood.observedAt)}`}
+          </small>
+          <small>This registry fact does not change the contract-risk verdict.</small>
+        </div>
+      </div>
+
       <div className="rule-block">
         <div>
           <span className="summary-label">Rule flags</span>
@@ -345,7 +376,9 @@ function isCheckResponse(value: Partial<CheckResponse>): value is CheckResponse 
     typeof value.timestamp === "string" &&
     Array.isArray(value.facts) &&
     Array.isArray(value.factDetails) &&
-    Array.isArray(value.flags)
+    Array.isArray(value.flags) &&
+    value.robinhood !== undefined &&
+    typeof value.robinhood.status === "string"
   );
 }
 
@@ -400,4 +433,34 @@ function formatUtc(timestamp: string): string {
     timeStyle: "medium",
     timeZone: "UTC",
   }).format(new Date(timestamp));
+}
+
+function identityTitle(result: CheckResponse): string {
+  if (result.robinhood.status === "canonical" && result.robinhood.asset) {
+    return `${result.robinhood.asset.tokenSymbol} / canonical Robinhood Stock Token`;
+  }
+
+  if (result.robinhood.status === "not-listed") {
+    return "not listed in the official Robinhood asset registry";
+  }
+
+  return "official registry unavailable";
+}
+
+function identityDetail(result: CheckResponse): string {
+  const asset = result.robinhood.asset;
+
+  if (!asset) {
+    return result.robinhood.status === "not-listed"
+      ? "A matching name or ticker alone does not make a contract canonical."
+      : "No identity conclusion was made from the registry.";
+  }
+
+  const multiplier = asset.currentMultiplier
+    ? `multiplier ${asset.currentMultiplier}`
+    : "multiplier unknown";
+  const pending = asset.pendingMultiplier
+    ? `, pending ${asset.pendingMultiplier}${asset.pendingMultiplierEffectiveTime ? ` at ${formatUtc(asset.pendingMultiplierEffectiveTime)}` : ""}`
+    : "";
+  return `${asset.tokenName}; ${asset.status ?? "status unknown"}; ${multiplier}${pending}.`;
 }

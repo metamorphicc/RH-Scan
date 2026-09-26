@@ -13,6 +13,10 @@ import { readTokenRightsDebug, type TokenRightsDebug } from "./flags";
 import { readPoolFacts, type PoolFacts } from "./pool";
 import { createRpcClient, type RpcClient } from "./rpc";
 import {
+  readRobinhoodAssetIdentity,
+  type RobinhoodAssetIdentity,
+} from "./robinhood";
+import {
   evaluate,
   type FactStatus,
   type RuleResult,
@@ -28,6 +32,7 @@ export type CheckResult = RuleResult & {
   rights: TokenRightsDebug;
   pool: PoolFacts;
   explorer: ExplorerContractInfo;
+  robinhood: RobinhoodAssetIdentity;
   deployer: DeployerRecord | null;
   cached: boolean;
 };
@@ -73,7 +78,10 @@ export async function checkToken(
     };
   }
 
-  const explorer = await readExplorerContractInfo(normalizedTokenAddress);
+  const [explorer, robinhood] = await Promise.all([
+    readExplorerContractInfo(normalizedTokenAddress),
+    readRobinhoodAssetIdentity(normalizedTokenAddress),
+  ]);
   const normalizedDeployerAddress =
     requestedDeployerAddress ?? explorer.creatorAddress;
 
@@ -122,6 +130,7 @@ export async function checkToken(
     rights,
     pool,
     explorer,
+    robinhood,
     deployer: deployerForRules,
     cached: false,
     ...ruleResult,
@@ -135,6 +144,7 @@ export async function checkToken(
       rights,
       pool,
       explorer,
+      robinhood,
       deployer: deployerForRules,
       ruleSnapshot,
       facts,

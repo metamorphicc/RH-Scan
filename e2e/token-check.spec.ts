@@ -48,6 +48,13 @@ test("checks a token without layout overflow", async ({ page }, testInfo) => {
         ],
         cached: false,
         rights: { metadata: { name: "Chainlink", symbol: "LINK" } },
+        robinhood: {
+          status: "not-listed",
+          asset: null,
+          sourceUrl: "https://api.robinhood.com/rhj/assets",
+          observedAt: OBSERVED_AT,
+          error: null,
+        },
       },
     });
   });

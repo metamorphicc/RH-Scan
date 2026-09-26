@@ -212,7 +212,8 @@ h3 {
 .snapshot-meta > div,
 .fact-row,
 .rule-block,
-.history-block {
+.history-block,
+.identity-block {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: linear-gradient(145deg, var(--panel), #0b0e09);
@@ -600,7 +601,8 @@ h3 {
 }
 
 .rule-block,
-.history-block {
+.history-block,
+.identity-block {
   display: grid;
   grid-template-columns: 0.55fr 1.45fr;
   gap: 18px;
@@ -609,8 +611,26 @@ h3 {
 }
 
 .rule-block h2,
-.history-block h2 {
+.history-block h2,
+.identity-block h2 {
   font-size: clamp(1.55rem, 3vw, 2.4rem);
+}
+
+.identity-details {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.identity-details span,
+.identity-details small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.identity-details a {
+  color: var(--accent);
+  text-underline-offset: 3px;
 }
 
 .flag-grid {
@@ -738,7 +758,8 @@ h3 {
   .story-head,
   .refusal-section,
   .rule-block,
-  .history-block {
+  .history-block,
+  .identity-block {
     grid-template-columns: 1fr;
   }
 
