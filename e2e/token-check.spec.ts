@@ -48,6 +48,10 @@ test("checks a token without layout overflow", async ({ page }, testInfo) => {
         ],
         cached: false,
         rights: { metadata: { name: "Chainlink", symbol: "LINK" } },
+        explorer: {
+          isVerified: true,
+          explorerUrl: `https://robinhoodchain.blockscout.com/address/${TOKEN}`,
+        },
         robinhood: {
           status: "not-listed",
           asset: null,
@@ -82,7 +86,8 @@ test("checks a token without layout overflow", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Check" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/t/${TOKEN}$`, "i"));
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("thin");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("LINK");
+  await expect(page.locator(".verdict-panel strong")).toHaveText("thin");
   await expect(page.getByText("Contract rights")).toBeVisible();
   await expect(page.getByText("Mint authority: present -> unknown")).toBeVisible();
 

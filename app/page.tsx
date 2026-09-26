@@ -65,16 +65,22 @@ export default function HomePage() {
                   autoCorrect="off"
                   inputMode="text"
                   onChange={(event) => setAddress(event.target.value)}
+                  aria-describedby={error ? "address-error" : "address-note"}
+                  aria-invalid={Boolean(error)}
                   placeholder="0x... token contract"
                   spellCheck={false}
                   value={address}
                 />
                 <button className="submit-button" type="submit">
-                  CHECK TOKEN
+                  Check token
                 </button>
               </div>
-              {error ? <p className="form-error">{error}</p> : null}
-              <p className="scan-foot">
+              {error ? (
+                <p className="form-error" id="address-error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <p className="scan-foot" id="address-note">
                 One snapshot. Nothing is signed, bought, sold, or routed.
               </p>
             </form>
@@ -83,7 +89,7 @@ export default function HomePage() {
           <div className="signal-board" aria-label="rhcheck system surface">
             <div className="signal-board-top">
               <span>snapshot surface</span>
-              <span>live rpc</span>
+              <span>chain 4663</span>
             </div>
             <div className="signal-row">
               <span>rights</span>
@@ -91,7 +97,7 @@ export default function HomePage() {
             </div>
             <div className="signal-row">
               <span>pool</span>
-              <b>venue / reserves / deployer share</b>
+              <b>Uniswap V2/V3 / reserves / LP share</b>
             </div>
             <div className="signal-row">
               <span>deployer</span>
@@ -135,9 +141,9 @@ export default function HomePage() {
 
         <div className="coverage-grid">
           <InfoCard title="01 / rights" body="Known ABI reads for owner, mint, freeze, and fee-like controls." />
-          <InfoCard title="02 / pool" body="Pool discovery is wired, but venues stay empty until addresses are verified." />
+          <InfoCard title="02 / pool" body="Verified Uniswap factories are checked across WETH and USDG markets." />
           <InfoCard title="03 / deployer" body="Local history counts snapshots and dead-token signals over time." />
-          <InfoCard title="04 / memory" body="Every check writes a snapshot that history can read back later." />
+          <InfoCard title="04 / identity" body="Official Stock Token registry matches stay separate from the risk verdict." />
         </div>
       </section>
 

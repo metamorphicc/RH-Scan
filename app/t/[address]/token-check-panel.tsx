@@ -31,6 +31,10 @@ type CheckResponse = {
       symbol: string | null;
     };
   };
+  explorer: {
+    isVerified: boolean | null;
+    explorerUrl: string;
+  };
   robinhood: {
     status: "canonical" | "not-listed" | "unavailable";
     sourceUrl: string;
@@ -79,6 +83,7 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [copyLabel, setCopyLabel] = useState("Copy link");
+  const [requestVersion, setRequestVersion] = useState(0);
   const encodedAddress = useMemo(() => encodeURIComponent(rawAddress), [rawAddress]);
 
   useEffect(() => {
@@ -86,6 +91,7 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
 
     async function loadCheck() {
       setState({ status: "loading" });
+      setHistory([]);
 
       try {
         const response = await fetch(`/api/check?token=${encodedAddress}`, {
@@ -150,11 +156,16 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
     loadCheck();
 
     return () => controller.abort();
-  }, [encodedAddress]);
+  }, [encodedAddress, requestVersion]);
 
   async function copyLink() {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopyLabel("Copied");
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyLabel("Copied");
+    } catch {
+      setCopyLabel("Copy failed");
+    }
+
     window.setTimeout(() => setCopyLabel("Copy link"), 1400);
   }
 
@@ -170,17 +181,31 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
       <div className="result-head">
         <div>
           <p className="eyebrow">Robinhood Chain snapshot</p>
-          <h1>{state.status === "ready" ? state.result.verdict : statusTitle(state)}</h1>
+          <h1>{resultTitle(state)}</h1>
         </div>
-        <button className="secondary-button" type="button" onClick={copyLink}>
-          {copyLabel}
-        </button>
+        <div className="button-row">
+          <button
+            aria-live="polite"
+            className="secondary-button"
+            type="button"
+            onClick={copyLink}
+          >
+            {copyLabel}
+          </button>
+          <Link className="secondary-link" href="/">
+            New check
+          </Link>
+        </div>
       </div>
 
       <div className="token-summary">
         <div>
           <span className="summary-label">Address</span>
           <span className="summary-value mono">{displayAddress(state, rawAddress)}</span>
+        </div>
+        <div>
+          <span className="summary-label">Contract</span>
+          <span className="summary-value">{verificationLabel(state)}</span>
         </div>
         <div>
           <span className="summary-label">Network</span>
@@ -194,7 +219,11 @@ export default function TokenCheckPanel({ rawAddress }: TokenCheckPanelProps) {
 
       {state.status === "loading" ? <LoadingState rawAddress={rawAddress} /> : null}
       {state.status === "invalid" || state.status === "not-found" || state.status === "error" ? (
-        <MessageState state={state} rawAddress={rawAddress} />
+        <MessageState
+          state={state}
+          rawAddress={rawAddress}
+          onRetry={() => setRequestVersion((version) => version + 1)}
+        />
       ) : null}
       {state.status === "ready" ? (
         <ReadyState history={history} result={state.result} />
@@ -221,15 +250,22 @@ function LoadingState({ rawAddress }: { rawAddress: string }) {
 function MessageState({
   state,
   rawAddress,
+  onRetry,
 }: {
   state: Extract<LoadState, { status: "invalid" | "not-found" | "error" }>;
   rawAddress: string;
+  onRetry: () => void;
 }) {
   return (
-    <div className="status-panel" role="status">
+    <div className="status-panel" role="alert">
       <h2>{statusTitle(state)}</h2>
       <p>{state.message}</p>
       <p className="mono">{rawAddress}</p>
+      {state.status === "error" ? (
+        <button className="secondary-button retry-button" type="button" onClick={onRetry}>
+          Retry check
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -377,6 +413,8 @@ function isCheckResponse(value: Partial<CheckResponse>): value is CheckResponse 
     Array.isArray(value.facts) &&
     Array.isArray(value.factDetails) &&
     Array.isArray(value.flags) &&
+    value.explorer !== undefined &&
+    typeof value.explorer.explorerUrl === "string" &&
     value.robinhood !== undefined &&
     typeof value.robinhood.status === "string"
   );
@@ -391,10 +429,22 @@ function statusTitle(state: LoadState): string {
     case "not-found":
       return "not found";
     case "error":
-      return "not wired";
+      return "unavailable";
     case "ready":
       return state.result.verdict;
   }
+}
+
+function resultTitle(state: LoadState): string {
+  if (state.status !== "ready") {
+    return statusTitle(state);
+  }
+
+  return (
+    state.result.rights.metadata.symbol ??
+    state.result.rights.metadata.name ??
+    shortAddress(state.result.tokenAddress)
+  );
 }
 
 function displayAddress(state: LoadState, fallback: string): string {
@@ -413,6 +463,20 @@ function displayName(state: LoadState): string {
   }
 
   return name ?? symbol ?? "unknown";
+}
+
+function verificationLabel(state: LoadState): string {
+  if (state.status !== "ready" || state.result.explorer.isVerified === null) {
+    return "unknown";
+  }
+
+  return state.result.explorer.isVerified ? "source verified" : "source unverified";
+}
+
+function shortAddress(address: string): string {
+  return address.length >= 14
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : address;
 }
 
 function verdictClass(verdict: Verdict): string {
