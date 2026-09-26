@@ -27,3 +27,17 @@ test("unknown mint never returns ok to size small", () => {
   assert.notEqual(evaluate(fixture.snapshot).verdict, "ok to size small");
 });
 
+test("unknown pool age never returns ok to size small", () => {
+  const fixture = (fixtures as RuleFixture[]).find(
+    (item) => item.name === "clean known snapshot can be ok",
+  );
+
+  assert.ok(fixture);
+  const result = evaluate({
+    ...fixture.snapshot,
+    pool: { ...fixture.snapshot.pool, ageMinutes: null },
+  });
+
+  assert.equal(result.verdict, "thin");
+  assert.ok(result.flags.some((flag) => flag.code === "pool-age-unknown"));
+});

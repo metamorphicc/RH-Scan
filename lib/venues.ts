@@ -4,6 +4,7 @@ export type QuoteToken = {
   address: Address;
   symbol: "WETH" | "USDG";
   decimals: number;
+  thinReserve: bigint;
 };
 
 type BaseVenue = {
@@ -31,11 +32,13 @@ export const QUOTE_TOKENS: readonly QuoteToken[] = [
     address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
     symbol: "WETH",
     decimals: 18,
+    thinReserve: 500_000_000_000_000_000n,
   },
   {
     address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
     symbol: "USDG",
     decimals: 6,
+    thinReserve: 1_000_000_000n,
   },
 ];
 

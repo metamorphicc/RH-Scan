@@ -90,16 +90,14 @@ export async function checkToken(
       : Promise.resolve(null),
   ]);
   const timestamp = new Date().toISOString();
-  const deployerForRules =
-    existingDeployer ??
-    (normalizedDeployerAddress
-      ? {
-          address: normalizedDeployerAddress,
-          tokensSeen: 0,
-          deadCount: 0,
-          updatedAt: timestamp,
-        }
-      : null);
+  const deployerForRules = normalizedDeployerAddress
+    ? await upsertDeployerStats({
+        address: normalizedDeployerAddress,
+        tokenAddress: normalizedTokenAddress,
+        isDead: pool.status === "absent",
+        timestamp,
+      })
+    : existingDeployer;
   const ruleSnapshot = toRuleSnapshot({
     tokenAddress: normalizedTokenAddress,
     rights,
@@ -124,7 +122,7 @@ export async function checkToken(
     rights,
     pool,
     explorer,
-    deployer: existingDeployer,
+    deployer: deployerForRules,
     cached: false,
     ...ruleResult,
   };
@@ -137,7 +135,7 @@ export async function checkToken(
       rights,
       pool,
       explorer,
-      deployer: existingDeployer,
+      deployer: deployerForRules,
       ruleSnapshot,
       facts,
       factDetails,
@@ -145,15 +143,6 @@ export async function checkToken(
     verdict: result.verdict,
     flags: result.flags.map((flag) => flag.code),
   });
-
-  if (normalizedDeployerAddress) {
-    await upsertDeployerStats({
-      address: normalizedDeployerAddress,
-      tokenAddress: normalizedTokenAddress,
-      isDead: pool.status === "absent",
-      timestamp,
-    });
-  }
 
   cache.set(cacheKey, {
     expiresAt: Date.now() + CACHE_MS,

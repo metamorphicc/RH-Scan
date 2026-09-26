@@ -39,7 +39,7 @@ export const RULE_THRESHOLDS = {
     USDG: 1_000_000_000n,
     WETH: 500_000_000_000_000_000n,
   },
-  newDeployerTokensSeen: 0,
+  newDeployerTokensSeen: 1,
   serialDeadDeployerCount: 3,
   deployerControlsPoolPercent: 50,
   freshPoolAgeMinutes: 30,
@@ -148,11 +148,19 @@ function poolFlags(snapshot: RuleSnapshot): RuleFlag[] {
     flags.push(thin("pool-quote-unknown", "Pool quote asset is unknown."));
   }
 
+  if (snapshot.pool.status === "present" && snapshot.pool.reserveQuote === null) {
+    flags.push(thin("pool-reserve-unknown", "Pool reserves are unknown."));
+  }
+
   if (
     snapshot.pool.ageMinutes !== null &&
     snapshot.pool.ageMinutes <= RULE_THRESHOLDS.freshPoolAgeMinutes
   ) {
     flags.push(thin("pool-fresh", "Pool is very new."));
+  }
+
+  if (snapshot.pool.status === "present" && snapshot.pool.ageMinutes === null) {
+    flags.push(thin("pool-age-unknown", "Pool age is unknown."));
   }
 
   return flags;
