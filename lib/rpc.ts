@@ -20,22 +20,30 @@ export type RpcConfig = {
 
 export type RpcClient = PublicClient<Transport, Chain>;
 
+export const DEFAULT_RH_RPC_URL = "https://rpc.mainnet.chain.robinhood.com";
+export const DEFAULT_RH_CHAIN_ID = 4663;
+
 export function getRpcConfigFromEnv(): RpcConfig {
-  const rpcUrl = process.env.RH_RPC_URL?.trim();
-  const rawChainId = process.env.RH_CHAIN_ID?.trim();
-
-  if (!rpcUrl) {
-    throw new RpcConfigError("RH_RPC_URL is required for Stage 1 RPC reads.");
-  }
-
-  if (!rawChainId) {
-    throw new RpcConfigError("RH_CHAIN_ID is required for Stage 1 RPC reads.");
-  }
+  const rpcUrl = process.env.RH_RPC_URL?.trim() || DEFAULT_RH_RPC_URL;
+  const rawChainId =
+    process.env.RH_CHAIN_ID?.trim() || String(DEFAULT_RH_CHAIN_ID);
 
   const chainId = Number.parseInt(rawChainId, 10);
 
   if (!Number.isInteger(chainId) || chainId <= 0) {
     throw new RpcConfigError("RH_CHAIN_ID must be a positive integer.");
+  }
+
+  let parsedRpcUrl: URL;
+
+  try {
+    parsedRpcUrl = new URL(rpcUrl);
+  } catch {
+    throw new RpcConfigError("RH_RPC_URL must be a valid HTTPS URL.");
+  }
+
+  if (parsedRpcUrl.protocol !== "https:" && parsedRpcUrl.hostname !== "localhost" && parsedRpcUrl.hostname !== "127.0.0.1") {
+    throw new RpcConfigError("RH_RPC_URL must use HTTPS outside local development.");
   }
 
   return {

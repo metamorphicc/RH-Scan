@@ -105,6 +105,7 @@ export function consumeRateLimitBucket(params: {
 }): { count: number; resetAt: number } {
   const db = getDatabase();
   const consume = db.transaction(() => {
+    db.prepare("delete from rate_limits where reset_at <= ?").run(params.now);
     const existing = db
       .prepare(
         `select request_count as count, reset_at as resetAt

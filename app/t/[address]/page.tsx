@@ -11,7 +11,7 @@ export async function generateMetadata({
   params,
 }: TokenPageProps): Promise<Metadata> {
   const { address } = await params;
-  const rawAddress = decodeURIComponent(address);
+  const rawAddress = decodeAddressSegment(address);
   const short = shortAddress(rawAddress);
   const imageUrl = `/api/og?token=${encodeURIComponent(rawAddress)}`;
   const title = `rhcheck ${short}`;
@@ -43,9 +43,17 @@ export async function generateMetadata({
 
 export default async function TokenPage({ params }: TokenPageProps) {
   const { address } = await params;
-  const rawAddress = decodeURIComponent(address);
+  const rawAddress = decodeAddressSegment(address);
 
   return <TokenCheckPanel rawAddress={rawAddress} />;
+}
+
+function decodeAddressSegment(address: string): string {
+  try {
+    return decodeURIComponent(address);
+  } catch {
+    return address;
+  }
 }
 
 function shortAddress(address: string): string {

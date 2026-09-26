@@ -42,3 +42,15 @@ test("keeps checks usable when explorer is unavailable", async () => {
   assert.equal(result.creatorAddress, null);
   assert.equal(result.error, "Explorer request failed.");
 });
+
+test("does not expose an unsafe explorer URL override", async () => {
+  const result = await readExplorerContractInfo(TOKEN, {
+    apiUrl: "javascript:alert(1)",
+    fetcher: async (input) => {
+      assert.match(String(input), /^https:\/\/robinhoodchain\.blockscout\.com/);
+      return Response.json({ is_contract: true });
+    },
+  });
+
+  assert.match(result.explorerUrl, /^https:\/\/robinhoodchain\.blockscout\.com/);
+});

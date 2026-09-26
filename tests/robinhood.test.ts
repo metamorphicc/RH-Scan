@@ -42,3 +42,17 @@ test("does not turn registry failure into a token identity claim", async () => {
   assert.equal(result.status, "unavailable");
   assert.equal(result.asset, null);
 });
+
+test("ignores unsafe asset API URL overrides", async () => {
+  clearRobinhoodAssetsCacheForTests();
+  const result = await readRobinhoodAssetIdentity(TOKEN, {
+    apiUrl: "data:text/plain,not-an-api",
+    fetcher: async (input) => {
+      assert.equal(String(input), "https://api.robinhood.com/rhj/assets");
+      return Response.json({ assets: [] });
+    },
+  });
+
+  assert.equal(result.status, "not-listed");
+  assert.equal(result.sourceUrl, "https://api.robinhood.com/rhj/assets");
+});

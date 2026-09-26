@@ -80,7 +80,20 @@ export async function readExplorerContractInfo(
 }
 
 function normalizeApiUrl(value: string | undefined): string {
-  return (value?.trim() || DEFAULT_EXPLORER_API_URL).replace(/\/+$/, "");
+  const candidate = (value?.trim() || DEFAULT_EXPLORER_API_URL).replace(
+    /\/+$/,
+    "",
+  );
+
+  try {
+    const url = new URL(candidate);
+    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    return url.protocol === "https:" || (url.protocol === "http:" && local)
+      ? candidate
+      : DEFAULT_EXPLORER_API_URL;
+  } catch {
+    return DEFAULT_EXPLORER_API_URL;
+  }
 }
 
 function publicExplorerUrl(apiUrl: string): string {

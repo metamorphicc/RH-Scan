@@ -34,12 +34,13 @@ type AssetsResponse = {
   assets?: unknown;
 };
 
-let assetsCache:
-  | {
-      expiresAt: number;
-      assets: AssetRecord[];
-    }
-  | undefined;
+const assetsCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    assets: AssetRecord[];
+  }
+>();
 
 export async function readRobinhoodAssetIdentity(
   address: Address,
@@ -50,7 +51,9 @@ export async function readRobinhoodAssetIdentity(
     now?: () => number;
   } = {},
 ): Promise<RobinhoodAssetIdentity> {
-  const apiUrl = (options.apiUrl?.trim() || process.env.RH_ASSETS_API_URL?.trim() || DEFAULT_ASSETS_API_URL).replace(/\/+$/, "");
+  const apiUrl = normalizeApiUrl(
+    options.apiUrl ?? process.env.RH_ASSETS_API_URL,
+  );
   const chainId = options.chainId ?? 4663;
   const now = options.now ?? Date.now;
   const observedAt = new Date(now()).toISOString();
@@ -90,8 +93,10 @@ async function readAssets(
 ): Promise<AssetRecord[]> {
   const timestamp = now();
 
-  if (assetsCache && assetsCache.expiresAt > timestamp) {
-    return assetsCache.assets;
+  const cached = assetsCache.get(apiUrl);
+
+  if (cached && cached.expiresAt > timestamp) {
+    return cached.assets;
   }
 
   const response = await fetcher(apiUrl, {
@@ -111,10 +116,10 @@ async function readAssets(
       })
     : [];
 
-  assetsCache = {
+  assetsCache.set(apiUrl, {
     assets,
     expiresAt: timestamp + ASSETS_CACHE_MS,
-  };
+  });
   return assets;
 }
 
@@ -190,6 +195,20 @@ function asHttpUrl(value: unknown): string | null {
   }
 }
 
+function normalizeApiUrl(value: string | undefined): string {
+  const candidate = (value?.trim() || DEFAULT_ASSETS_API_URL).replace(/\/+$/, "");
+
+  try {
+    const url = new URL(candidate);
+    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    return url.protocol === "https:" || (url.protocol === "http:" && local)
+      ? candidate
+      : DEFAULT_ASSETS_API_URL;
+  } catch {
+    return DEFAULT_ASSETS_API_URL;
+  }
+}
+
 export function clearRobinhoodAssetsCacheForTests(): void {
-  assetsCache = undefined;
+  assetsCache.clear();
 }

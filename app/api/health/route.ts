@@ -3,6 +3,7 @@ import { checkDatabaseHealth } from "@/lib/db";
 import { getRpcConfigFromEnv } from "@/lib/rpc";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET() {
   let rpcConfigured = false;
