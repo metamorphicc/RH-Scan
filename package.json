@@ -2,6 +2,9 @@
   "name": "rhcheck",
   "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "dev": "next dev",
@@ -10,21 +13,22 @@
     "test": "pnpm test:unit",
     "test:unit": "tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js",
     "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "pnpm typecheck && pnpm test:unit && pnpm test:e2e && pnpm build"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "viem": "^2.56.3"
+    "better-sqlite3": "13.0.3",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "viem": "2.56.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@types/better-sqlite3": "^9.6.0",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "typescript": "latest"
+    "@playwright/test": "1.63.0",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "26.5.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "typescript": "7.0.2"
   }
 }

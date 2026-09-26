@@ -23,11 +23,13 @@ Caution rules:
 
 - Any critical authority field is unknown.
 - Pool status is unknown.
+- Pool reserves are unknown.
 - Quote reserves are below the quote-specific thin-pool threshold.
 - The pool quote asset is unknown.
 - Pool age is 30 minutes or less.
+- Pool age is unknown.
 - Deployer history is unknown.
-- Deployer has no local history.
+- Only the current token is known for the deployer.
 
 `ok to size small` is returned only when:
 
@@ -46,5 +48,7 @@ Caution rules:
 - Fresh pool threshold: `30` minutes.
 - Deployer LP control threshold: `50%`.
 - Serial dead deployer threshold: `3` dead tokens.
+
+Official Robinhood Stock Token registry identity is informational. It never raises or lowers the verdict.
 
 These values are placeholders for v0.1 fixtures and can be revised with QA evidence.

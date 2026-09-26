@@ -43,7 +43,7 @@ test("keeps checks usable when explorer is unavailable", async () => {
   assert.equal(result.error, "Explorer request failed.");
 });
 
-test("does not expose an unsafe explorer URL override", async () => {
+test("does not expose a non-HTTPS explorer URL override", async () => {
   const result = await readExplorerContractInfo(TOKEN, {
     apiUrl: "javascript:alert(1)",
     fetcher: async (input) => {

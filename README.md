@@ -1,131 +1,100 @@
 # rhcheck
 
-rhcheck is a TypeScript Next.js App Router project for a read-only Robinhood Chain token check page.
+rhcheck is a read-only Robinhood Chain contract review surface. Paste an EVM token address and it records a point-in-time snapshot of common contract controls, verified Uniswap liquidity, local deployer history, Blockscout metadata, and official Robinhood Stock Token identity.
 
-This repository currently includes Stages 0-8. It provides the app skeleton, an address input on the home page, a token result page at `/t/[address]`, environment variable examples, temporary debug APIs for rights and pool reads, deterministic offline verdict rules, an end-to-end check API, OG images, a rough in-memory rate limit, a live-address QA list, and snapshot history JSON.
+The output is deterministic and evidence-led. Every caution links back to a plain rule, unavailable data stays unknown, and official asset identity is displayed separately from the contract-risk verdict.
 
-## What It Is
+## What It Does
 
-- A read-only token check interface for Robinhood Chain.
-- A result page that routes an entered address to `/t/[address]` and displays the latest check result.
-- A temporary `GET /api/rights?token=0x...` endpoint that reads known view methods with `eth_call`.
-- A temporary `GET /api/pool?token=0x...` endpoint that reads verified Uniswap V2 and V3 pools against WETH and USDG.
-- A `GET /api/check?token=0x...` endpoint that combines rights, pool facts, deployer stats, rules, caching, and snapshot storage.
-- A `GET /api/og?token=0x...` image endpoint for link previews.
-- A `GET /api/history?token=0x...` endpoint that returns previous snapshots for one token.
-- A persistent hashed-IP rate limit on `/api/check`.
-- A Stage 7 QA list at `qa/addresses.md` with 20 Robinhood Chain token addresses and 5 explorer spot checks.
-- Offline deterministic rules that can produce `don't`, `thin`, or `ok to size small`.
+- Reads known ERC-20, Ownable, Ownable2Step, AccessControl, pause, freeze, blacklist, fee-wallet, and EIP-1967 proxy surfaces.
+- Searches verified Uniswap V2 and V3 factories for WETH and USDG pools, then reports the deepest comparable pool found.
+- Distinguishes an absent pool from an incomplete factory read.
+- Discovers contract creator and verification metadata through Robinhood Chain Blockscout.
+- Matches chain ID `4663` deployments against Robinhood's official Stock Token assets API.
+- Applies local deterministic rules with three possible verdicts: `don't`, `thin`, and `ok to size small`.
+- Stores snapshots, deployer-token relationships, and hashed-IP rate-limit buckets in SQLite.
+- Shows source provenance, snapshot changes, responsive OG images, and a health endpoint.
 
-Rights inspection covers common Ownable and Ownable2Step getters, pause/blacklist/freeze controls, enumerable AccessControl role members, and EIP-1967 implementation or beacon slots. Unsupported custom authority patterns remain `unknown`.
+## What It Does Not Do
 
-## What It Is Not
+- No wallet connection or signer.
+- No transaction construction or submission.
+- No swap, route, quote-to-buy flow, or buy button.
+- No LLM scoring or hidden model judgment.
+- No arbitrary contract execution; reads are limited to known view ABIs and EIP-1967 storage slots.
+- No promise about future token behavior. A snapshot can be incomplete or become stale after it is recorded.
+- No price recommendation. Official Stock Token registry identity does not alter the contract-risk verdict.
 
-- No wallet connection.
-- No signer.
-- No swap flow.
-- No buy button.
-- No LLM scoring.
-- No wallet actions, alerts, or payments.
-- No invented DEX/factory addresses; venue configuration is sourced from official Uniswap deployment documentation and checked on Robinhood Chain Blockscout.
-- No history UI, alerts, or payments.
-- No guarantee language about token outcomes.
+## Run Locally
+
+Requirements: Node.js `20.9+` and Corepack. The public Robinhood Chain RPC is configured by default, so local development does not require an API key.
+
+```powershell
+corepack enable
+corepack pnpm install --frozen-lockfile
+Copy-Item .env.example .env.local
+corepack pnpm dev
+```
+
+Open `http://localhost:3000` and paste a token contract address.
+
+If `pnpm` is not available as a standalone command, keep the `corepack pnpm ...` prefix shown above. For production traffic, replace the public RPC URL with a dedicated Robinhood Chain provider endpoint.
 
 ## Environment
 
-Copy `.env.example` to `.env.local` for RPC reads:
-
-```bash
-RH_RPC_URL=
-RH_CHAIN_ID=
+```dotenv
+RH_RPC_URL=https://rpc.mainnet.chain.robinhood.com
+RH_CHAIN_ID=4663
 RH_EXPLORER_API_URL=https://robinhoodchain.blockscout.com/api/v2
-RHCHECK_DB_PATH=
+RH_ASSETS_API_URL=https://api.robinhood.com/rhj/assets
+RHCHECK_DB_PATH=./data/rhcheck.sqlite
 RHCHECK_ENABLE_DEBUG_API=false
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-`RH_EXPLORER_API_URL` is optional and defaults to the public Robinhood Chain Blockscout API v2. It is used to discover the contract creator and verification metadata. `RHCHECK_DB_PATH` is optional; by default snapshots are stored in `data/rhcheck.sqlite`.
+`RH_RPC_URL` and `RH_CHAIN_ID` fall back to the official public mainnet values. `RH_EXPLORER_API_URL`, `RH_ASSETS_API_URL`, and `RHCHECK_DB_PATH` also have built-in defaults. None of these values is a secret.
 
-`RHCHECK_ENABLE_DEBUG_API` may be set to `true` to expose `/api/rights` and `/api/pool` in production. They are available automatically during local development and return 404 in production by default.
+Set `RHCHECK_ENABLE_DEBUG_API=true` only when the temporary `/api/rights` and `/api/pool` inspection routes should be exposed in production. They are available automatically in local development.
 
-## Run Locally
-
-Install dependencies:
-
-```bash
-corepack enable
-pnpm install
-```
-
-Start the development server:
-
-```bash
-pnpm dev
-```
-
-Open `http://localhost:3000`, paste an address, and submit. The app will route to `/t/[address]`, call `/api/check`, and display the verdict, three facts, block, snapshot time, and copy link control.
-
-To test the Stage 1 rights debug endpoint after setting `RH_RPC_URL` and `RH_CHAIN_ID`:
-
-```bash
-curl "http://localhost:3000/api/rights?token=0x..."
-```
-
-To test the Stage 2 pool debug endpoint:
-
-```bash
-curl "http://localhost:3000/api/pool?token=0x..."
-```
-
-The pool reader checks the verified Uniswap V2 and V3 factories against WETH and USDG pairs. V3 checks the 0.01%, 0.05%, 0.3%, and 1% fee tiers.
-Quote reserves are returned both as raw base units and normalized decimal amounts. Deterministic thin-liquidity thresholds are quote-specific: 1,000 USDG or 0.5 WETH.
-
-To test the Stage 4 check endpoint:
-
-```bash
-curl "http://localhost:3000/api/check?token=0x..."
-```
-
-You may pass a deployer address when known:
-
-```bash
-curl "http://localhost:3000/api/check?token=0x...&deployer=0x..."
-```
-
-Responses are cached in memory for 45 seconds per token/deployer pair and written to SQLite snapshots.
-
-To read previous snapshots:
-
-```bash
-curl "http://localhost:3000/api/history?token=0x..."
-```
-
-The check endpoint has a persistent limit of 60 requests per minute per hashed IP. RPC requests use bounded timeouts and retries. `GET /api/health` reports database and RPC configuration readiness without making an RPC call.
-
-To preview the OG image endpoint:
-
-```bash
-curl -I "http://localhost:3000/api/og?token=0x..."
-```
-
-OG previews read the latest stored snapshot and never trigger a new RPC check or database write.
-
-Run offline rule fixtures:
-
-```bash
-pnpm test
-```
-
-Run the browser flow against mocked API responses at mobile, tablet, and desktop widths:
-
-```bash
-pnpm test:e2e
-```
-
-Install the Playwright Chromium browser once with `pnpm exec playwright install chromium` before running the browser suite.
-
-Run the Stage 7 live-address QA list while the dev server is running:
+## Commands
 
 ```powershell
-.\qa\run-checks.ps1
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm test:e2e
+corepack pnpm build
+corepack pnpm verify
 ```
+
+Install Playwright's Chromium binary once before the browser suite:
+
+```powershell
+corepack pnpm exec playwright install chromium
+```
+
+`pnpm test` runs deterministic unit tests. The Playwright suite covers input validation, failure recovery, API headers, responsive layout, and the complete mocked result flow at mobile, tablet, and desktop widths.
+
+## API Surface
+
+- `GET /api/check?token=0x...` performs a check, rate-limits it, and stores a snapshot.
+- `GET /api/history?token=0x...&limit=5` returns recent snapshots and field-level changes.
+- `GET /api/og?token=0x...` renders the latest stored verdict without triggering RPC work.
+- `GET /api/health` checks database and runtime configuration readiness without making an RPC call.
+- `GET /api/rights` and `GET /api/pool` are debug-only routes.
+
+The check cache lasts 45 seconds per token/deployer pair. The persistent request limit is 60 requests per minute per hashed client address.
+
+## Deployment
+
+rhcheck needs a long-running Node.js runtime and a persistent writable volume for SQLite. Do not rely on an ephemeral serverless filesystem if snapshot history matters.
+
+```powershell
+docker build -t rhcheck .
+docker run --rm -p 3000:3000 -v rhcheck-data:/app/data rhcheck
+```
+
+Set `NEXT_PUBLIC_SITE_URL` to the public HTTPS origin before building production metadata. Mount `/app/data` or point `RHCHECK_DB_PATH` at another persistent path.
+
+## Design Boundaries
+
+The canonical product rules are documented in [rules.md](./rules.md). Architecture and data-flow notes live in [docs/architecture.md](./docs/architecture.md). The original scoped build plan remains in [rhcheck-mvp.md](./rhcheck-mvp.md) as historical context, not current setup documentation.
