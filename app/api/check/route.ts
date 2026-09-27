@@ -5,6 +5,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { RpcConfigError } from "@/lib/rpc";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const rateLimit = checkRateLimit(request);

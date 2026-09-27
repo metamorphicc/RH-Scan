@@ -5,6 +5,7 @@ import { RpcConfigError } from "@/lib/rpc";
 import { debugApiEnabled } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   if (!debugApiEnabled()) {
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
     if (error instanceof AddressValidationError) {
       return NextResponse.json(
         {
-          error: "Pool check is unavailable right now.",
+          error: error.message,
         },
         { status: 400 },
       );
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
         {
           error: error.message,
         },
-        { status: 500 },
+        { status: 503 },
       );
     }
 

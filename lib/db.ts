@@ -105,6 +105,7 @@ export function consumeRateLimitBucket(params: {
 }): { count: number; resetAt: number } {
   const db = getDatabase();
   const consume = db.transaction(() => {
+    db.prepare("delete from rate_limits where reset_at <= ?").run(params.now);
     const existing = db
       .prepare(
         `select request_count as count, reset_at as resetAt
@@ -156,45 +157,67 @@ export async function upsertDeployerStats(params: {
   timestamp: string;
 }): Promise<DeployerRecord> {
   const db = getDatabase();
-  const existing = await getDeployerStats(params.address);
+  const upsert = db.transaction(() => {
+    const existing = db
+      .prepare(
+        `select address, tokens_seen as tokensSeen, dead_count as deadCount, updated_at as updatedAt
+         from deployers
+         where lower(address) = lower(?)`,
+      )
+      .get(params.address) as DeployerRecord | undefined;
+    const trackedToken = db
+      .prepare(
+        `select is_dead as isDead
+         from deployer_tokens
+         where lower(deployer_address) = lower(?) and lower(token_address) = lower(?)`,
+      )
+      .get(params.address, params.tokenAddress) as { isDead: number } | undefined;
 
-  if (!existing) {
+    const isNewToken = !trackedToken;
+    const becameDead = Boolean(
+      params.isDead && trackedToken && trackedToken.isDead === 0,
+    );
+    const tokensSeen = (existing?.tokensSeen ?? 0) + (isNewToken ? 1 : 0);
+    const deadCount =
+      (existing?.deadCount ?? 0) +
+      (isNewToken && params.isDead ? 1 : 0) +
+      (becameDead ? 1 : 0);
+
+    db.prepare(
+      `insert into deployer_tokens (deployer_address, token_address, is_dead, updated_at)
+       values (?, ?, ?, ?)
+       on conflict(deployer_address, token_address) do update set
+         is_dead = max(deployer_tokens.is_dead, excluded.is_dead),
+         updated_at = excluded.updated_at`,
+    ).run(
+      params.address.toLowerCase(),
+      params.tokenAddress.toLowerCase(),
+      params.isDead ? 1 : 0,
+      params.timestamp,
+    );
     db.prepare(
       `insert into deployers (address, tokens_seen, dead_count, updated_at)
-       values (?, ?, ?, ?)`,
-    ).run(params.address, 1, params.isDead ? 1 : 0, params.timestamp);
+       values (?, ?, ?, ?)
+       on conflict(address) do update set
+         tokens_seen = excluded.tokens_seen,
+         dead_count = excluded.dead_count,
+         updated_at = excluded.updated_at`,
+    ).run(
+      existing?.address ?? params.address.toLowerCase(),
+      tokensSeen,
+      deadCount,
+      params.timestamp,
+    );
 
     return {
-      address: params.address,
-      tokensSeen: 1,
-      deadCount: params.isDead ? 1 : 0,
+      address: existing?.address ?? params.address,
+      tokensSeen,
+      deadCount,
       updatedAt: params.timestamp,
     };
-  }
+  });
 
-  const tokenSeenBefore = db
-    .prepare(
-      `select 1 from snapshots
-       where lower(token) = lower(?)
-       limit 1`,
-    )
-    .get(params.tokenAddress);
-  const tokensSeen = existing.tokensSeen + (tokenSeenBefore ? 0 : 1);
-  const deadCount =
-    existing.deadCount + (!tokenSeenBefore && params.isDead ? 1 : 0);
-
-  db.prepare(
-    `update deployers
-     set tokens_seen = ?, dead_count = ?, updated_at = ?
-     where lower(address) = lower(?)`,
-  ).run(tokensSeen, deadCount, params.timestamp, params.address);
-
-  return {
-    address: existing.address,
-    tokensSeen,
-    deadCount,
-    updatedAt: params.timestamp,
-  };
+  return upsert.immediate();
 }
 
 function getDatabase(): Database.Database {
@@ -234,6 +257,17 @@ function getDatabase(): Database.Database {
 
     create index if not exists rate_limits_reset_idx
       on rate_limits (reset_at);
+
+    create table if not exists deployer_tokens (
+      deployer_address text not null,
+      token_address text not null,
+      is_dead integer not null default 0,
+      updated_at text not null,
+      primary key (deployer_address, token_address)
+    );
+
+    create index if not exists deployer_tokens_token_idx
+      on deployer_tokens (token_address);
   `);
 
   return database;

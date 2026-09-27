@@ -42,3 +42,45 @@ test("stores and retrieves the latest snapshot", async () => {
   assert.deepEqual(latest?.rawJson, { version: 2 });
   assert.deepEqual(history.map((item) => item.block), [2, 1]);
 });
+
+test("counts each deployer token once before its first snapshot is stored", async () => {
+  const { getDeployerStats, saveSnapshot, upsertDeployerStats } = await import(
+    "../lib/db.js"
+  );
+  const deployer = "0x00000000000000000000000000000000000000d1";
+  const firstToken = "0x0000000000000000000000000000000000000011";
+  const secondToken = "0x0000000000000000000000000000000000000012";
+
+  await upsertDeployerStats({
+    address: deployer,
+    tokenAddress: firstToken,
+    isDead: false,
+    timestamp: "2026-09-22T12:00:00.000Z",
+  });
+  await saveSnapshot({
+    token: firstToken,
+    block: 3,
+    timestamp: "2026-09-22T12:00:00.000Z",
+    rawJson: {},
+    verdict: "thin",
+    flags: [],
+  });
+
+  const updated = await upsertDeployerStats({
+    address: deployer,
+    tokenAddress: secondToken,
+    isDead: true,
+    timestamp: "2026-09-22T13:00:00.000Z",
+  });
+  const repeated = await upsertDeployerStats({
+    address: deployer,
+    tokenAddress: secondToken,
+    isDead: true,
+    timestamp: "2026-09-22T14:00:00.000Z",
+  });
+
+  assert.equal(updated.tokensSeen, 2);
+  assert.equal(updated.deadCount, 1);
+  assert.deepEqual(await getDeployerStats(deployer), repeated);
+  assert.equal(repeated.tokensSeen, 2);
+});

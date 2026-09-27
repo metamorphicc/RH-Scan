@@ -13,6 +13,10 @@ import { readTokenRightsDebug, type TokenRightsDebug } from "./flags";
 import { readPoolFacts, type PoolFacts } from "./pool";
 import { createRpcClient, type RpcClient } from "./rpc";
 import {
+  readRobinhoodAssetIdentity,
+  type RobinhoodAssetIdentity,
+} from "./robinhood";
+import {
   evaluate,
   type FactStatus,
   type RuleResult,
@@ -28,6 +32,7 @@ export type CheckResult = RuleResult & {
   rights: TokenRightsDebug;
   pool: PoolFacts;
   explorer: ExplorerContractInfo;
+  robinhood: RobinhoodAssetIdentity;
   deployer: DeployerRecord | null;
   cached: boolean;
 };
@@ -47,6 +52,7 @@ export type CheckTokenOptions = {
 };
 
 const CACHE_MS = 45_000;
+const MAX_CACHE_ENTRIES = 500;
 const cache = new Map<
   string,
   {
@@ -54,6 +60,7 @@ const cache = new Map<
     result: CheckResult;
   }
 >();
+const inFlight = new Map<string, Promise<CheckResult>>();
 
 export async function checkToken(
   tokenAddress: string,
@@ -73,7 +80,40 @@ export async function checkToken(
     };
   }
 
-  const explorer = await readExplorerContractInfo(normalizedTokenAddress);
+
+  const runningCheck = inFlight.get(cacheKey);
+
+  if (runningCheck) {
+    const result = await runningCheck;
+    return { ...result, cached: true };
+  }
+
+  const pending = runCheck(
+    normalizedTokenAddress,
+    requestedDeployerAddress,
+    cacheKey,
+    options,
+  );
+  inFlight.set(cacheKey, pending);
+
+  try {
+    return await pending;
+  } finally {
+    inFlight.delete(cacheKey);
+  }
+}
+
+async function runCheck(
+  normalizedTokenAddress: `0x${string}`,
+  requestedDeployerAddress: `0x${string}` | null,
+  cacheKey: string,
+  options: CheckTokenOptions,
+): Promise<CheckResult> {
+
+  const [explorer, robinhood] = await Promise.all([
+    readExplorerContractInfo(normalizedTokenAddress),
+    readRobinhoodAssetIdentity(normalizedTokenAddress),
+  ]);
   const normalizedDeployerAddress =
     requestedDeployerAddress ?? explorer.creatorAddress;
 
@@ -90,16 +130,14 @@ export async function checkToken(
       : Promise.resolve(null),
   ]);
   const timestamp = new Date().toISOString();
-  const deployerForRules =
-    existingDeployer ??
-    (normalizedDeployerAddress
-      ? {
-          address: normalizedDeployerAddress,
-          tokensSeen: 0,
-          deadCount: 0,
-          updatedAt: timestamp,
-        }
-      : null);
+  const deployerForRules = normalizedDeployerAddress
+    ? await upsertDeployerStats({
+        address: normalizedDeployerAddress,
+        tokenAddress: normalizedTokenAddress,
+        isDead: pool.status === "absent",
+        timestamp,
+      })
+    : existingDeployer;
   const ruleSnapshot = toRuleSnapshot({
     tokenAddress: normalizedTokenAddress,
     rights,
@@ -124,7 +162,8 @@ export async function checkToken(
     rights,
     pool,
     explorer,
-    deployer: existingDeployer,
+    robinhood,
+    deployer: deployerForRules,
     cached: false,
     ...ruleResult,
   };
@@ -137,7 +176,8 @@ export async function checkToken(
       rights,
       pool,
       explorer,
-      deployer: existingDeployer,
+      robinhood,
+      deployer: deployerForRules,
       ruleSnapshot,
       facts,
       factDetails,
@@ -146,21 +186,23 @@ export async function checkToken(
     flags: result.flags.map((flag) => flag.code),
   });
 
-  if (normalizedDeployerAddress) {
-    await upsertDeployerStats({
-      address: normalizedDeployerAddress,
-      tokenAddress: normalizedTokenAddress,
-      isDead: pool.status === "absent",
-      timestamp,
-    });
-  }
-
   cache.set(cacheKey, {
     expiresAt: Date.now() + CACHE_MS,
     result,
   });
+  pruneCache();
 
   return result;
+}
+
+function pruneCache(): void {
+  const now = Date.now();
+
+  for (const [key, entry] of cache) {
+    if (entry.expiresAt <= now || cache.size > MAX_CACHE_ENTRIES) {
+      cache.delete(key);
+    }
+  }
 }
 
 function toRuleSnapshot({

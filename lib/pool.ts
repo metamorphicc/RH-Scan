@@ -1,5 +1,6 @@
 import { formatUnits, parseAbi, type Address } from "viem";
 import { normalizeTokenAddress } from "./address";
+import { selectDeepestPool, statusWhenNoPool } from "./pool-selection";
 import { createRpcClient, type RpcClient } from "./rpc";
 import {
   VENUES,
@@ -49,6 +50,10 @@ type PoolCandidate =
       feeTier: number;
     };
 
+type PoolLookup =
+  | { status: "ok"; candidate: PoolCandidate | null }
+  | { status: "error"; candidate: null };
+
 export async function readPoolFacts(
   tokenAddress: string,
   options: ReadPoolFactsOptions = {},
@@ -65,7 +70,7 @@ export async function readPoolFacts(
     ? normalizeTokenAddress(options.deployerAddress)
     : null;
 
-  const lookups: Array<Promise<PoolCandidate | null>> = [];
+  const lookups: Array<Promise<PoolLookup>> = [];
 
   for (const venue of venues) {
     for (const quoteToken of venue.quoteTokens) {
@@ -80,8 +85,9 @@ export async function readPoolFacts(
             venue.factory,
             token,
             quoteToken.address,
-          ).then((poolAddress) =>
-            isNonZeroAddress(poolAddress)
+          ).then((poolAddress): PoolLookup => ({
+            status: "ok",
+            candidate: isNonZeroAddress(poolAddress)
               ? {
                   version: "v2" as const,
                   venue,
@@ -90,7 +96,7 @@ export async function readPoolFacts(
                   feeTier: null,
                 }
               : null,
-          ),
+          })).catch(() => ({ status: "error", candidate: null })),
         );
         continue;
       }
@@ -103,8 +109,9 @@ export async function readPoolFacts(
             token,
             quoteToken.address,
             feeTier,
-          ).then((poolAddress) =>
-            isNonZeroAddress(poolAddress)
+          ).then((poolAddress): PoolLookup => ({
+            status: "ok",
+            candidate: isNonZeroAddress(poolAddress)
               ? {
                   version: "v3" as const,
                   venue,
@@ -113,42 +120,49 @@ export async function readPoolFacts(
                   feeTier,
                 }
               : null,
-          ),
+          })).catch(() => ({ status: "error", candidate: null })),
         );
       }
     }
   }
 
-  const candidate = (await Promise.all(lookups)).find(
-    (item): item is PoolCandidate => item !== null,
+  const lookupResults = await Promise.all(lookups);
+  const candidates = lookupResults.flatMap((result) =>
+    result.candidate ? [result.candidate] : [],
   );
 
-  if (candidate?.version === "v2") {
-    return readV2PairFacts({
-      client,
-      venue: candidate.venue,
-      token,
-      quoteToken: candidate.quoteToken,
-      pairAddress: candidate.poolAddress,
-      deployerAddress,
-    });
+  if (candidates.length === 0) {
+    const status = statusWhenNoPool(
+      lookupResults.map((result) => result.status),
+    );
+    return status === "unknown"
+      ? unknownPoolFacts()
+      : { ...unknownPoolFacts(), status };
   }
 
-  if (candidate?.version === "v3") {
-    return readV3PoolFacts({
-      client,
-      venue: candidate.venue,
-      token,
-      quoteToken: candidate.quoteToken,
-      poolAddress: candidate.poolAddress,
-      feeTier: candidate.feeTier,
-    });
-  }
+  const pools = await Promise.all(
+    candidates.map((candidate) =>
+      candidate.version === "v2"
+        ? readV2PairFacts({
+            client,
+            venue: candidate.venue,
+            token,
+            quoteToken: candidate.quoteToken,
+            pairAddress: candidate.poolAddress,
+            deployerAddress,
+          })
+        : readV3PoolFacts({
+            client,
+            venue: candidate.venue,
+            token,
+            quoteToken: candidate.quoteToken,
+            poolAddress: candidate.poolAddress,
+            feeTier: candidate.feeTier,
+          }),
+    ),
+  );
 
-  return {
-    ...unknownPoolFacts(),
-    status: "absent",
-  };
+  return selectDeepestPool(pools);
 }
 
 function unknownPoolFacts(): PoolFacts {
@@ -174,19 +188,13 @@ async function readV2PairAddress(
   factory: Address,
   token: Address,
   quoteToken: Address,
-): Promise<Address | null> {
-  try {
-    const pairAddress = await client.readContract({
-      address: factory,
-      abi: FACTORY_ABI,
-      functionName: "getPair",
-      args: [token, quoteToken],
-    });
-
-    return pairAddress;
-  } catch {
-    return null;
-  }
+): Promise<Address> {
+  return client.readContract({
+    address: factory,
+    abi: FACTORY_ABI,
+    functionName: "getPair",
+    args: [token, quoteToken],
+  });
 }
 
 async function readV3PoolAddress(
@@ -195,17 +203,13 @@ async function readV3PoolAddress(
   token: Address,
   quoteToken: Address,
   feeTier: number,
-): Promise<Address | null> {
-  try {
-    return await client.readContract({
-      address: factory,
-      abi: V3_FACTORY_ABI,
-      functionName: "getPool",
-      args: [token, quoteToken, feeTier],
-    });
-  } catch {
-    return null;
-  }
+): Promise<Address> {
+  return client.readContract({
+    address: factory,
+    abi: V3_FACTORY_ABI,
+    functionName: "getPool",
+    args: [token, quoteToken, feeTier],
+  });
 }
 
 async function readV2PairFacts({
